@@ -5,6 +5,8 @@ import { createSettingsStore } from './store.js';
 import { registerPetWindowIpc, registerSettingsIpc, getThemesDir } from './ipc.js';
 import { loadThemes } from './theme-loader.js';
 import { applyAutoLaunch } from './auto-launch.js';
+import { createTray } from './tray.js';
+import { openSettingsWindow } from './settings-window.js';
 import { IPC } from '@shared/ipc-channels';
 
 let petWindow: BrowserWindow | null = null;
@@ -13,6 +15,10 @@ const store = createSettingsStore();
 let suppressNextPositionPersist = false;
 
 app.whenReady().then(() => {
+  if (process.platform === 'darwin') {
+    app.dock?.hide();
+  }
+
   // Sync the OS login-item state with the persisted preference on boot.
   applyAutoLaunch(store.get('autoLaunch'));
 
@@ -48,6 +54,8 @@ app.whenReady().then(() => {
     }
   });
   keyHook.start();
+
+  createTray(() => openSettingsWindow());
 });
 
 app.on('before-quit', () => keyHook.stop());
