@@ -4,6 +4,9 @@ import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const DEFAULT_BOTTOM_MARGIN_PX = 80;
+const ALWAYS_ON_TOP_LEVEL = 'screen-saver' as const;
+
 export interface PetWindowOptions {
   width: number;
   height: number;
@@ -14,7 +17,7 @@ export interface PetWindowOptions {
 export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
   const display = screen.getPrimaryDisplay().workArea;
   const x = opts.x ?? display.x + display.width / 2 - opts.width / 2;
-  const y = opts.y ?? display.y + display.height - opts.height - 80;
+  const y = opts.y ?? display.y + display.height - opts.height - DEFAULT_BOTTOM_MARGIN_PX;
 
   const win = new BrowserWindow({
     width: opts.width,
@@ -40,7 +43,7 @@ export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
     }
   });
 
-  win.setAlwaysOnTop(true, 'screen-saver');
+  win.setAlwaysOnTop(true, ALWAYS_ON_TOP_LEVEL);
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
   if (process.env.ELECTRON_RENDERER_URL) {
