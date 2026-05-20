@@ -14,6 +14,7 @@ export function createSettingsStore() {
     set<K extends keyof AppSettings>(key: K, val: AppSettings[K]): void {
       store.set(key, val);
     },
+    /** Shallow merge — nested objects (e.g. petPosition) are replaced wholesale, not deep-merged. */
     update(patch: Partial<AppSettings>): void {
       store.store = { ...store.store, ...patch };
     },

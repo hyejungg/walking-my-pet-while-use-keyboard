@@ -37,4 +37,12 @@ describe('settings store', () => {
     expect(store.get('idleTimeoutMs')).toBe(800);
     expect(store.get('activeThemeId')).toBe(DEFAULT_SETTINGS.activeThemeId);
   });
+
+  it('round-trips petPosition between null and an object', () => {
+    expect(store.get('petPosition')).toBeNull();
+    store.set('petPosition', { x: 100, y: 200 });
+    expect(store.get('petPosition')).toEqual({ x: 100, y: 200 });
+    store.set('petPosition', null);
+    expect(store.get('petPosition')).toBeNull();
+  });
 });
