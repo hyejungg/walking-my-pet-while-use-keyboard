@@ -4,6 +4,7 @@ import { createKeyHook } from './key-hook.js';
 import { createSettingsStore } from './store.js';
 import { registerPetWindowIpc, registerSettingsIpc, getThemesDir } from './ipc.js';
 import { loadThemes } from './theme-loader.js';
+import { applyAutoLaunch } from './auto-launch.js';
 import { IPC } from '@shared/ipc-channels';
 
 let petWindow: BrowserWindow | null = null;
@@ -12,6 +13,9 @@ const store = createSettingsStore();
 let suppressNextPositionPersist = false;
 
 app.whenReady().then(() => {
+  // Sync the OS login-item state with the persisted preference on boot.
+  applyAutoLaunch(store.get('autoLaunch'));
+
   const themes = loadThemes(getThemesDir());
   const activeId = store.get('activeThemeId');
   const active = themes.find(t => t.meta.id === activeId) ?? themes[0] ?? null;
@@ -24,7 +28,7 @@ app.whenReady().then(() => {
   registerSettingsIpc(
     store,
     () => petWindow,
-    (_enabled) => { /* TODO Task 12 */ },
+    applyAutoLaunch,
     () => { suppressNextPositionPersist = true; }
   );
 
