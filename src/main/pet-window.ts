@@ -62,15 +62,19 @@ export function moveWindowBy(win: BrowserWindow, dx: number): {
 } {
   const display = screen.getDisplayMatching(win.getBounds()).workArea;
   const bounds = win.getBounds();
+  const maxX = display.x + display.width - bounds.width;
   let nextX = bounds.x + dx;
   let hit: 'left' | 'right' | null = null;
 
+  // Apply right-edge clamp first; if the window is wider than the display
+  // (maxX < display.x), the left-edge clamp below overrides and wins.
+  if (nextX > maxX) {
+    nextX = maxX;
+    hit = 'right';
+  }
   if (nextX < display.x) {
     nextX = display.x;
     hit = 'left';
-  } else if (nextX + bounds.width > display.x + display.width) {
-    nextX = display.x + display.width - bounds.width;
-    hit = 'right';
   }
 
   win.setBounds({ ...bounds, x: Math.round(nextX) });
