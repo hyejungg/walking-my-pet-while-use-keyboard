@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import { createPetWindow } from './pet-window.js';
 import { createKeyHook } from './key-hook.js';
+import { registerPetWindowIpc } from './ipc.js';
 import { IPC } from '@shared/ipc-channels';
 
 let petWindow: BrowserWindow | null = null;
@@ -8,6 +9,7 @@ const keyHook = createKeyHook();
 
 app.whenReady().then(() => {
   petWindow = createPetWindow({ width: 160, height: 160 });
+  registerPetWindowIpc(() => petWindow);
 
   keyHook.on('key', () => {
     if (petWindow && !petWindow.isDestroyed()) {

@@ -55,3 +55,24 @@ export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
   win.once('ready-to-show', () => win.show());
   return win;
 }
+
+export function moveWindowBy(win: BrowserWindow, dx: number): {
+  newX: number;
+  hitEdge: 'left' | 'right' | null;
+} {
+  const display = screen.getDisplayMatching(win.getBounds()).workArea;
+  const bounds = win.getBounds();
+  let nextX = bounds.x + dx;
+  let hit: 'left' | 'right' | null = null;
+
+  if (nextX < display.x) {
+    nextX = display.x;
+    hit = 'left';
+  } else if (nextX + bounds.width > display.x + display.width) {
+    nextX = display.x + display.width - bounds.width;
+    hit = 'right';
+  }
+
+  win.setBounds({ ...bounds, x: Math.round(nextX) });
+  return { newX: nextX, hitEdge: hit };
+}
