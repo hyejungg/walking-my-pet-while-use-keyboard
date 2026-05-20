@@ -46,6 +46,10 @@ export class PetController {
     const now = Date.now();
     this.recordKey(now);
     if (this.state === 'idle') this.setState('walk');
+    // Step interval is scheduled BEFORE the idle timeout so that, when both
+    // are due on the same tick, fake/real timer queues fire the step first —
+    // letting the final step land at the idle boundary instead of being
+    // pre-empted by the idle transition clearing the interval.
     this.ensureStepTimer();
     this.resetIdleTimer();
   }
