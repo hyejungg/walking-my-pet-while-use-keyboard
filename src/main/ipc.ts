@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, screen } from 'electron';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { IPC } from '@shared/ipc-channels';
 import { moveWindowBy, resizePetWindow } from './pet-window.js';
 import { loadThemes } from './theme-loader.js';
@@ -7,10 +8,14 @@ import type { SettingsStore } from './store.js';
 import type { AppSettings } from '@shared/settings-schema';
 import type { ThemeAssets } from '@shared/theme-types';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 export function getThemesDir(): string {
-  return app.isPackaged
-    ? join(process.resourcesPath, 'themes')
-    : join(app.getAppPath(), 'themes');
+  if (app.isPackaged) return join(process.resourcesPath, 'themes');
+  // In dev, app.getAppPath() can resolve to the main-script directory rather
+  // than the project root depending on how electron is launched. Derive from
+  // this module's location instead: out/main/ipc.js → ../../themes.
+  return join(__dirname, '..', '..', 'themes');
 }
 
 export function registerPetWindowIpc(
@@ -45,7 +50,16 @@ export function registerSettingsIpc(
   setAutoLaunch: (enabled: boolean) => void,
   suppressNextPositionPersist: () => void
 ) {
-  ipcMain.handle(IPC.SETTINGS_GET, (): AppSettings => store.getAll());
+  ipcMain.handle(IPC.SETTINGS_GET, (): AppSettings => {
+    const all = store.getAll();
+    // Normalize: if the persisted activeThemeId isn't present in themes/, fall
+    // back to the first available theme so settings UI can highlight it.
+    const themes = loadThemes(getThemesDir());
+    if (themes.length > 0 && !themes.find(t => t.meta.id === all.activeThemeId)) {
+      all.activeThemeId = themes[0].meta.id;
+    }
+    return all;
+  });
 
   ipcMain.handle(IPC.SETTINGS_SET, (_e, patch: Partial<AppSettings>): AppSettings => {
     store.update(patch);

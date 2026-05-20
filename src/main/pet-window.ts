@@ -26,6 +26,7 @@ export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
     y: Math.round(y),
     frame: false,
     transparent: true,
+    backgroundColor: '#00000000',
     resizable: false,
     movable: true,
     minimizable: false,
@@ -34,7 +35,7 @@ export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
     skipTaskbar: true,
     alwaysOnTop: true,
     hasShadow: false,
-    show: false,
+    show: true,
     webPreferences: {
       preload: join(__dirname, '../preload/pet.js'),
       contextIsolation: true,
@@ -52,7 +53,6 @@ export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
     win.loadFile(join(__dirname, '../renderer/pet/index.html'));
   }
 
-  win.once('ready-to-show', () => win.show());
   return win;
 }
 

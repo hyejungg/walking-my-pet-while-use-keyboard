@@ -13,9 +13,10 @@ let petWindow: BrowserWindow | null = null;
 const keyHook = createKeyHook();
 const store = createSettingsStore();
 let suppressNextPositionPersist = false;
+const isE2E = process.env.WALKING_PET_E2E === '1';
 
 app.whenReady().then(() => {
-  if (process.platform === 'darwin') {
+  if (process.platform === 'darwin' && !isE2E) {
     app.dock?.hide();
   }
 
@@ -55,7 +56,16 @@ app.whenReady().then(() => {
   });
   keyHook.start();
 
-  createTray(() => openSettingsWindow());
+  if (!isE2E) {
+    createTray(() => openSettingsWindow());
+  } else {
+    // Expose a synchronous entry point for e2e tests to open the settings window
+    // without going through the system tray or a dynamic import (which can't
+    // execute inside Playwright's main-process evaluate context).
+    (globalThis as unknown as { __openSettings?: () => void }).__openSettings = () => {
+      openSettingsWindow();
+    };
+  }
 });
 
 app.on('before-quit', () => keyHook.stop());

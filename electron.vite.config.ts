@@ -19,7 +19,10 @@ export default defineConfig({
         },
         output: {
           format: 'cjs',
-          entryFileNames: '[name].js'
+          entryFileNames: '[name].js',
+          // Sandboxed Electron preload cannot require local chunks at runtime,
+          // so inline every shared module back into each entry file.
+          manualChunks: () => null
         }
       }
     }
