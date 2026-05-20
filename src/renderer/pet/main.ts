@@ -6,6 +6,7 @@ const spriteEl = document.getElementById('pet-sprite') as HTMLDivElement;
 
 let activeTheme: ThemeAssets | null = null;
 let controller: PetController | null = null;
+let applyGen = 0;
 
 const sprite = new PetSprite(({ col, row }) => {
   const m = activeTheme?.meta;
@@ -15,6 +16,11 @@ const sprite = new PetSprite(({ col, row }) => {
 });
 
 async function applyTheme(theme: ThemeAssets | null) {
+  // Each invocation gets a generation; an awaited handoff that resumes
+  // after a newer invocation started must bail to avoid two controllers
+  // running in parallel and leaking listeners onto PetSprite.
+  const gen = ++applyGen;
+
   if (controller) {
     controller.dispose();
     controller = null;
@@ -36,6 +42,7 @@ async function applyTheme(theme: ThemeAssets | null) {
   spriteEl.style.backgroundSize = `${m.columns * m.renderWidth}px ${m.rows * m.renderHeight}px`;
 
   await window.petAPI.setSize(m.renderWidth, m.renderHeight);
+  if (gen !== applyGen) return;
 
   controller = new PetController({
     idleTimeoutMs: 600,
@@ -53,12 +60,16 @@ async function applyTheme(theme: ThemeAssets | null) {
     else sprite.setRow({ row: mm.idleRow, count: mm.idleColumns, fps: mm.fps });
   });
 
-  controller.onStep(async ({ dx, direction, speedMultiplier }) => {
+  controller.onStep(({ dx, direction, speedMultiplier }) => {
     if (!activeTheme) return;
     spriteEl.style.transform = direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
     sprite.setFps(activeTheme.meta.fps * speedMultiplier);
-    const result = await window.petAPI.moveBy(dx);
-    if (result.hitEdge && controller) controller.flipDirection();
+    // Fire-and-forget: awaiting per-tick would let two moveBy invokes overlap
+    // under load and reorder window setBounds calls. We only need the result
+    // for edge detection — apply it asynchronously.
+    void window.petAPI.moveBy(dx).then((result) => {
+      if (result.hitEdge && controller) controller.flipDirection();
+    });
   });
 
   sprite.setRow({ row: m.idleRow, count: m.idleColumns, fps: m.fps });
