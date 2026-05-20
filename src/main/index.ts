@@ -9,6 +9,7 @@ import { IPC } from '@shared/ipc-channels';
 let petWindow: BrowserWindow | null = null;
 const keyHook = createKeyHook();
 const store = createSettingsStore();
+let suppressNextPositionPersist = false;
 
 app.whenReady().then(() => {
   const themes = loadThemes(getThemesDir());
@@ -20,9 +21,18 @@ app.whenReady().then(() => {
   const savedPos = store.get('petPosition');
   petWindow = createPetWindow({ width, height, x: savedPos?.x, y: savedPos?.y });
   registerPetWindowIpc(() => petWindow, store);
-  registerSettingsIpc(store, () => petWindow, (_enabled) => { /* TODO Task 12 */ });
+  registerSettingsIpc(
+    store,
+    () => petWindow,
+    (_enabled) => { /* TODO Task 12 */ },
+    () => { suppressNextPositionPersist = true; }
+  );
 
   petWindow.on('moved', () => {
+    if (suppressNextPositionPersist) {
+      suppressNextPositionPersist = false;
+      return;
+    }
     if (!petWindow) return;
     const [x, y] = petWindow.getPosition();
     store.set('petPosition', { x, y });

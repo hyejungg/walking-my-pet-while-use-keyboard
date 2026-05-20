@@ -42,7 +42,8 @@ export function registerPetWindowIpc(
 export function registerSettingsIpc(
   store: SettingsStore,
   getPetWindow: () => BrowserWindow | null,
-  setAutoLaunch: (enabled: boolean) => void
+  setAutoLaunch: (enabled: boolean) => void,
+  suppressNextPositionPersist: () => void
 ) {
   ipcMain.handle(IPC.SETTINGS_GET, (): AppSettings => store.getAll());
 
@@ -71,6 +72,10 @@ export function registerSettingsIpc(
     if (!win || win.isDestroyed()) return;
     const display = screen.getPrimaryDisplay().workArea;
     const b = win.getBounds();
+    // setBounds emits a 'moved' event whose listener would immediately
+    // re-persist the new coords and undo the null reset above. Tell the
+    // listener to skip exactly one event.
+    suppressNextPositionPersist();
     win.setBounds({
       x: Math.round(display.x + display.width / 2 - b.width / 2),
       y: Math.round(display.y + display.height - b.height - 80),
