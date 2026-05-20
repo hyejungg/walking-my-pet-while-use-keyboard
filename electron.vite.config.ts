@@ -14,7 +14,8 @@ export default defineConfig({
       outDir: 'out/preload',
       rollupOptions: {
         input: {
-          pet: resolve('src/preload/pet.ts')
+          pet: resolve('src/preload/pet.ts'),
+          settings: resolve('src/preload/settings.ts')
         },
         output: {
           format: 'cjs',
@@ -30,7 +31,8 @@ export default defineConfig({
       outDir: 'out/renderer',
       rollupOptions: {
         input: {
-          pet: resolve('src/renderer/pet/index.html')
+          pet: resolve('src/renderer/pet/index.html'),
+          settings: resolve('src/renderer/settings/index.html')
         }
       }
     }

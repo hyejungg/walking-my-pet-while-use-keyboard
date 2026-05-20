@@ -1,9 +1,10 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, screen } from 'electron';
 import { join } from 'node:path';
 import { IPC } from '@shared/ipc-channels';
 import { moveWindowBy, resizePetWindow } from './pet-window.js';
 import { loadThemes } from './theme-loader.js';
 import type { SettingsStore } from './store.js';
+import type { AppSettings } from '@shared/settings-schema';
 import type { ThemeAssets } from '@shared/theme-types';
 
 export function getThemesDir(): string {
@@ -35,5 +36,46 @@ export function registerPetWindowIpc(
     const themes = loadThemes(getThemesDir());
     const id = store.get('activeThemeId');
     return themes.find(t => t.meta.id === id) ?? themes[0] ?? null;
+  });
+}
+
+export function registerSettingsIpc(
+  store: SettingsStore,
+  getPetWindow: () => BrowserWindow | null,
+  setAutoLaunch: (enabled: boolean) => void
+) {
+  ipcMain.handle(IPC.SETTINGS_GET, (): AppSettings => store.getAll());
+
+  ipcMain.handle(IPC.SETTINGS_SET, (_e, patch: Partial<AppSettings>): AppSettings => {
+    store.update(patch);
+
+    if (patch.activeThemeId) {
+      const all = loadThemes(getThemesDir());
+      const active = all.find(t => t.meta.id === patch.activeThemeId) ?? null;
+      const win = getPetWindow();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(IPC.THEME_SET_ACTIVE, active);
+      }
+    }
+
+    if (typeof patch.autoLaunch === 'boolean') {
+      setAutoLaunch(patch.autoLaunch);
+    }
+
+    return store.getAll();
+  });
+
+  ipcMain.handle(IPC.PET_POSITION_RESET, () => {
+    store.set('petPosition', null);
+    const win = getPetWindow();
+    if (!win || win.isDestroyed()) return;
+    const display = screen.getPrimaryDisplay().workArea;
+    const b = win.getBounds();
+    win.setBounds({
+      x: Math.round(display.x + display.width / 2 - b.width / 2),
+      y: Math.round(display.y + display.height - b.height - 80),
+      width: b.width,
+      height: b.height
+    });
   });
 }
