@@ -1,0 +1,37 @@
+appId: com.molly.walkingpet
+productName: Walking Pet
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: themes
+    to: themes
+  - from: resources/tray-icon.png
+    to: tray-icon.png
+mac:
+  category: public.app-category.utilities
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  # TODO: provide resources/icon.png (or .icns) and re-enable the icon key.
+  # icon: resources/icon.png
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  extendInfo:
+    LSUIElement: 1
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # TODO: provide resources/icon.png (or .ico) and re-enable the icon key.
+  # icon: resources/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
