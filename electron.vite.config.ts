@@ -15,6 +15,10 @@ export default defineConfig({
       rollupOptions: {
         input: {
           pet: resolve('src/preload/pet.ts')
+        },
+        output: {
+          format: 'cjs',
+          entryFileNames: '[name].js'
         }
       }
     }
