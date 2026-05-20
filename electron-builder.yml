@@ -6,6 +6,9 @@ directories:
 files:
   - out/**
   - package.json
+# Native .node bindings must live outside app.asar so Electron can dlopen them.
+asarUnpack:
+  - "**/node_modules/uiohook-napi/**"
 extraResources:
   - from: themes
     to: themes
