@@ -1,0 +1,18 @@
+{
+  "id": "coding-pup",
+  "displayName": "Coding Pup",
+  "description": "A black-and-white coding dog companion inspired by the provided photo.",
+  "spritesheetPath": "spritesheet.webp",
+  "frameWidth": 256,
+  "frameHeight": 208,
+  "columns": 6,
+  "rows": 9,
+  "idleRow": 0,
+  "idleColumns": 1,
+  "walkRow": 2,
+  "walkColumns": 6,
+  "fps": 8,
+  "stepPx": 6,
+  "renderWidth": 160,
+  "renderHeight": 130
+}

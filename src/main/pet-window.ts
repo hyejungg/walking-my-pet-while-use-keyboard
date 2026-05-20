@@ -80,3 +80,8 @@ export function moveWindowBy(win: BrowserWindow, dx: number): {
   win.setBounds({ ...bounds, x: Math.round(nextX) });
   return { newX: nextX, hitEdge: hit };
 }
+
+export function resizePetWindow(win: BrowserWindow, width: number, height: number): void {
+  const b = win.getBounds();
+  win.setBounds({ x: b.x, y: b.y, width, height });
+}
