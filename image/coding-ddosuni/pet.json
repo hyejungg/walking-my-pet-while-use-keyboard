@@ -1,0 +1,6 @@
+{
+  "id": "coding-pup",
+  "displayName": "Coding Pup",
+  "description": "A black-and-white coding dog companion inspired by the provided photo.",
+  "spritesheetPath": "spritesheet.webp"
+}
