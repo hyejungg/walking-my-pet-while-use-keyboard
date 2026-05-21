@@ -11,18 +11,15 @@ let applyGen = 0;
 
 let cellW = 0;
 let cellH = 0;
-const VISIBLE_FRACTION = 0.55;
+const VISIBLE_FRACTION = 0.6;
 const VERTICAL_PADDING_RATIO = 0;
 
 // Priority-driven reaction state — the reaction with the highest priority
 // that is still active drives sprite rendering. Mutually-exclusive: a higher
 // reaction cancels lower ones.
 let cryUntilMs = 0;
-let dizzyUntilMs = 0;
-let cheerUntilMs = 0;
 let variantUntilMs = 0;
 let hovering = false;
-let keyCount = 0;
 
 const sprite = new PetSprite(({ col, row }) => {
   if (!activeTheme) return;
@@ -41,14 +38,6 @@ function applyCurrentPose() {
   if (now < cryUntilMs) {
     // Cry is a single still frame so it doesn't flicker between poses.
     sprite.setRow({ row: m.cryRow, count: 1, fps: m.fps });
-    return;
-  }
-  if (now < dizzyUntilMs) {
-    sprite.setRow({ row: m.dizzyRow, count: m.dizzyColumns, fps: m.fps });
-    return;
-  }
-  if (now < cheerUntilMs) {
-    sprite.setRow({ row: m.cheerRow, count: m.cheerColumns, fps: m.fps });
     return;
   }
   if (hovering) {
@@ -95,7 +84,7 @@ function scheduleVariant() {
 function reservedRows(): Set<number> {
   if (!activeTheme) return new Set();
   const m = activeTheme.meta;
-  return new Set([m.idleRow, m.walkRow, m.cryRow, m.hoverRow, m.cheerRow, m.dizzyRow, m.sleepRow]);
+  return new Set([m.idleRow, m.walkRow, m.cryRow, m.hoverRow, m.sleepRow]);
 }
 
 function triggerVariant() {
@@ -132,9 +121,8 @@ async function applyTheme(theme: ThemeAssets | null) {
   }
   cancelVariant();
   activeTheme = theme;
-  cryUntilMs = dizzyUntilMs = cheerUntilMs = 0;
+  cryUntilMs = 0;
   hovering = false;
-  keyCount = 0;
 
   if (!theme) {
     spriteEl.style.background = 'rgba(255,200,200,0.6)';
@@ -197,20 +185,6 @@ window.petAPI.onActiveThemeChanged(applyTheme);
 window.petAPI.onKeyTyped(() => {
   if (Date.now() < cryUntilMs) return;
   controller?.notifyKey();
-  // Accumulated typing → cheer reaction every cheerThreshold keys.
-  if (!activeTheme) return;
-  const m = activeTheme.meta;
-  keyCount++;
-  if (keyCount >= m.cheerThreshold) {
-    keyCount = 0;
-    cheerUntilMs = Date.now() + m.cheerDurationMs;
-    cancelVariant();
-    applyCurrentPose();
-    setTimeout(() => {
-      cheerUntilMs = 0;
-      applyCurrentPose();
-    }, m.cheerDurationMs);
-  }
 });
 
 // Right-click → settings.
@@ -248,11 +222,8 @@ spriteEl.addEventListener('mouseleave', () => {
   scheduleVariant();
 });
 
-// Drag + shake detection.
+// Drag (no shake-detection — the dizzy reaction was removed).
 const DRAG_THRESHOLD_PX = 3;
-const SHAKE_WINDOW_MS = 700;
-const SHAKE_REVERSALS_REQUIRED = 4;
-const SHAKE_MIN_DELTA_PX = 14;
 
 interface DragState {
   startMx: number;
@@ -260,37 +231,9 @@ interface DragState {
   startWx: number;
   startWy: number;
   active: boolean;
-  lastX: number;
-  lastDir: 1 | -1 | 0;
-  reversals: number;
-  reversalSince: number;
 }
 
 let drag: DragState | null = null;
-
-function detectShake(now: number, x: number) {
-  if (!drag) return;
-  const dxStep = x - drag.lastX;
-  if (Math.abs(dxStep) < SHAKE_MIN_DELTA_PX) return;
-  const dir: 1 | -1 = dxStep > 0 ? 1 : -1;
-  if (drag.lastDir !== 0 && dir !== drag.lastDir) {
-    drag.reversals++;
-    if (now - drag.reversalSince > SHAKE_WINDOW_MS) drag.reversals = 1;
-    drag.reversalSince = now;
-    if (drag.reversals >= SHAKE_REVERSALS_REQUIRED && activeTheme) {
-      const m = activeTheme.meta;
-      dizzyUntilMs = now + m.dizzyDurationMs;
-      drag.reversals = 0;
-      applyCurrentPose();
-      setTimeout(() => {
-        dizzyUntilMs = 0;
-        applyCurrentPose();
-      }, m.dizzyDurationMs);
-    }
-  }
-  drag.lastDir = dir;
-  drag.lastX = x;
-}
 
 spriteEl.addEventListener('mousedown', async (e) => {
   if (e.button !== 0) return;
@@ -301,11 +244,7 @@ spriteEl.addEventListener('mousedown', async (e) => {
     startMy: e.screenY,
     startWx: bounds.x,
     startWy: bounds.y,
-    active: false,
-    lastX: e.screenX,
-    lastDir: 0,
-    reversals: 0,
-    reversalSince: Date.now()
+    active: false
   };
 });
 
@@ -319,7 +258,6 @@ window.addEventListener('mousemove', (e) => {
     spriteEl.classList.add('dragging');
   }
   window.petAPI.setPosition(drag.startWx + dx, drag.startWy + dy);
-  detectShake(Date.now(), e.screenX);
 });
 
 window.addEventListener('mouseup', () => {
@@ -333,8 +271,7 @@ window.addEventListener('mouseup', () => {
 setInterval(() => {
   if (!controller) return;
   if (controller.state !== 'idle') return;
-  if (Date.now() < cryUntilMs || Date.now() < dizzyUntilMs ||
-      Date.now() < cheerUntilMs || Date.now() < variantUntilMs) return;
+  if (Date.now() < cryUntilMs || Date.now() < variantUntilMs) return;
   if (hovering) return;
   applyCurrentPose();
 }, 60_000);

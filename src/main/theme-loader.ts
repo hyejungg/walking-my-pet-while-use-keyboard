@@ -8,8 +8,6 @@ const NUMBER_FIELDS: Array<keyof ThemeMeta> = [
   'idleRow', 'idleColumns', 'walkRow', 'walkColumns',
   'cryRow', 'cryColumns', 'cryDurationMs',
   'hoverRow', 'hoverColumns',
-  'cheerRow', 'cheerColumns', 'cheerThreshold', 'cheerDurationMs',
-  'dizzyRow', 'dizzyColumns', 'dizzyDurationMs',
   'sleepRow', 'sleepColumns',
   'fps', 'stepPx', 'renderWidth', 'renderHeight'
 ];

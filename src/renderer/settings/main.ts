@@ -70,23 +70,15 @@ interface Reaction {
   trigger: string;
   rowKey: keyof Pick<
     ThemeMeta,
-    'idleRow' | 'walkRow' | 'cryRow' | 'hoverRow' | 'cheerRow' | 'dizzyRow' | 'sleepRow'
+    'idleRow' | 'walkRow' | 'cryRow' | 'hoverRow' | 'sleepRow'
   >;
-  thresholdNote?: (m: ThemeMeta) => string;
 }
 
 const REACTIONS: Reaction[] = [
   { title: '기본 자세', trigger: '아무 입력도 없을 때', rowKey: 'idleRow' },
   { title: '걷기', trigger: '타자를 치면', rowKey: 'walkRow' },
-  {
-    title: '축하',
-    trigger: '많이 타이핑하면',
-    rowKey: 'cheerRow',
-    thresholdNote: (m) => `${m.cheerThreshold}타마다 잠깐 등장`
-  },
   { title: '우는 표정', trigger: '펫을 더블클릭하면', rowKey: 'cryRow' },
   { title: '쳐다보기', trigger: '마우스를 올리면', rowKey: 'hoverRow' },
-  { title: '어지러움', trigger: '펫을 잡고 좌우로 흔들면', rowKey: 'dizzyRow' },
   { title: '잠자기', trigger: '밤(22시–6시)에', rowKey: 'sleepRow' }
 ];
 
@@ -112,13 +104,6 @@ function renderReactions() {
     trig.className = 'reaction-trigger';
     trig.textContent = r.trigger;
     body.appendChild(trig);
-
-    if (r.thresholdNote) {
-      const extra = document.createElement('div');
-      extra.className = 'reaction-extra';
-      extra.textContent = r.thresholdNote(m);
-      body.appendChild(extra);
-    }
 
     card.appendChild(body);
     reactionListEl.appendChild(card);
