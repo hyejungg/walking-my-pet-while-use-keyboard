@@ -109,26 +109,6 @@ function renderReactions() {
     reactionListEl.appendChild(card);
   }
 
-  // Variant (random other poses) — explain even though it has no fixed row.
-  const variantCard = document.createElement('div');
-  variantCard.className = 'reaction-card';
-  const variantPlaceholder = document.createElement('div');
-  variantPlaceholder.className = 'sprite-preview placeholder';
-  variantPlaceholder.textContent = '🎲';
-  variantCard.appendChild(variantPlaceholder);
-
-  const variantBody = document.createElement('div');
-  variantBody.className = 'reaction-body';
-  const vt = document.createElement('div');
-  vt.className = 'reaction-title';
-  vt.textContent = '랜덤 자세';
-  const vtr = document.createElement('div');
-  vtr.className = 'reaction-trigger';
-  vtr.textContent = '가만히 두면 8–18초마다 다른 자세를 보여줘요';
-  variantBody.appendChild(vt);
-  variantBody.appendChild(vtr);
-  variantCard.appendChild(variantBody);
-  reactionListEl.appendChild(variantCard);
 }
 
 async function init() {
