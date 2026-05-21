@@ -21,12 +21,12 @@ html, body {
   background-repeat: no-repeat;
   image-rendering: pixelated;
   transform-origin: center center;
-  transition: transform 80ms linear, opacity 140ms ease-in-out;
+  /* Smooth left/right flip during walking. */
+  transition: transform 320ms ease-in-out;
   /* Dragging is handled in JS via mousedown + setPosition IPC instead of
      -webkit-app-region so contextmenu/dblclick events still reach the
      renderer. */
   cursor: grab;
-  opacity: 1;
 }
 
 .pet-sprite.dragging { cursor: grabbing; }

@@ -13,14 +13,23 @@ let cellW = 0;
 let cellH = 0;
 const VISIBLE_FRACTION = 0.75;
 const VERTICAL_PADDING_RATIO = 0;
-// How long the sprite fades out before a new pose is committed.
-const FADE_OUT_MS = 120;
-const FADE_OUT_OPACITY = 0.25;
 
 let cryUntilMs = 0;
+let variantUntilMs = 0;
 let hovering = false;
-let lastAppliedRow = -1;
-let pendingFadeTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Walk left/right flip — every WALK_FLIP_INTERVAL_MS the sprite mirrors
+// horizontally so the character looks like it's wandering both directions.
+const WALK_FLIP_INTERVAL_MS = 4_000;
+let walkFlipped = false;
+let walkFlipTimer: ReturnType<typeof setInterval> | null = null;
+
+// Idle-time variants: every 8–18 seconds an "unused" row plays for ~2.5s.
+const VARIANT_MIN_WAIT_MS = 8_000;
+const VARIANT_MAX_WAIT_MS = 18_000;
+const VARIANT_DURATION_MS = 2_500;
+let variantTimer: ReturnType<typeof setTimeout> | null = null;
+let variantTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const sprite = new PetSprite(({ col, row }) => {
   if (!activeTheme) return;
@@ -30,6 +39,12 @@ const sprite = new PetSprite(({ col, row }) => {
 function isNightHour(): boolean {
   const h = new Date().getHours();
   return h >= 22 || h < 6;
+}
+
+function reservedRows(): Set<number> {
+  if (!activeTheme) return new Set();
+  const m = activeTheme.meta;
+  return new Set([m.idleRow, m.walkRow, m.cryRow, m.hoverRow, m.sleepRow]);
 }
 
 interface TargetPose {
@@ -45,6 +60,7 @@ function computeTarget(): TargetPose | null {
   if (now < cryUntilMs) return { row: m.cryRow, count: 1, fps: m.fps };
   if (hovering) return { row: m.hoverRow, count: m.hoverColumns, fps: m.fps };
   if (controller.state === 'walk') return { row: m.walkRow, count: m.walkColumns, fps: m.fps };
+  if (now < variantUntilMs) return null; // variant timeout already set the row
   if (isNightHour()) return { row: m.sleepRow, count: m.sleepColumns, fps: m.fps };
   return { row: m.idleRow, count: m.idleColumns, fps: m.fps };
 }
@@ -52,23 +68,63 @@ function computeTarget(): TargetPose | null {
 function applyCurrentPose() {
   const target = computeTarget();
   if (!target) return;
-  if (target.row === lastAppliedRow) {
-    // Same row — likely a count/fps refresh during walk speed changes; no
-    // visual swap, no fade needed.
-    sprite.setRow(target);
+  sprite.setRow(target);
+}
+
+function startWalkFlipTimer() {
+  if (walkFlipTimer) clearInterval(walkFlipTimer);
+  walkFlipped = false;
+  spriteEl.style.transform = 'scaleX(1)';
+  walkFlipTimer = setInterval(() => {
+    walkFlipped = !walkFlipped;
+    spriteEl.style.transform = walkFlipped ? 'scaleX(-1)' : 'scaleX(1)';
+  }, WALK_FLIP_INTERVAL_MS);
+}
+
+function stopWalkFlipTimer() {
+  if (walkFlipTimer) clearInterval(walkFlipTimer);
+  walkFlipTimer = null;
+  walkFlipped = false;
+  spriteEl.style.transform = 'scaleX(1)';
+}
+
+function cancelVariant() {
+  if (variantTimer) clearTimeout(variantTimer);
+  if (variantTimeout) clearTimeout(variantTimeout);
+  variantTimer = variantTimeout = null;
+  variantUntilMs = 0;
+}
+
+function scheduleVariant() {
+  if (variantTimer) clearTimeout(variantTimer);
+  const wait = VARIANT_MIN_WAIT_MS + Math.random() * (VARIANT_MAX_WAIT_MS - VARIANT_MIN_WAIT_MS);
+  variantTimer = setTimeout(triggerVariant, wait);
+}
+
+function triggerVariant() {
+  variantTimer = null;
+  if (!activeTheme || !controller) return;
+  if (controller.state !== 'idle' || Date.now() < cryUntilMs || hovering) {
+    scheduleVariant();
     return;
   }
-  if (pendingFadeTimer) {
-    clearTimeout(pendingFadeTimer);
-    pendingFadeTimer = null;
+  const m = activeTheme.meta;
+  const reserved = reservedRows();
+  const rows: number[] = [];
+  for (let r = 0; r < m.rows; r++) if (!reserved.has(r)) rows.push(r);
+  if (rows.length === 0) {
+    scheduleVariant();
+    return;
   }
-  spriteEl.style.opacity = String(FADE_OUT_OPACITY);
-  pendingFadeTimer = setTimeout(() => {
-    pendingFadeTimer = null;
-    sprite.setRow(target);
-    lastAppliedRow = target.row;
-    spriteEl.style.opacity = '1';
-  }, FADE_OUT_MS);
+  const row = rows[Math.floor(Math.random() * rows.length)];
+  variantUntilMs = Date.now() + VARIANT_DURATION_MS;
+  sprite.setRow({ row, count: m.columns, fps: m.fps });
+  variantTimeout = setTimeout(() => {
+    variantTimeout = null;
+    variantUntilMs = 0;
+    applyCurrentPose();
+    scheduleVariant();
+  }, VARIANT_DURATION_MS);
 }
 
 async function applyTheme(theme: ThemeAssets | null) {
@@ -78,14 +134,11 @@ async function applyTheme(theme: ThemeAssets | null) {
     controller.dispose();
     controller = null;
   }
-  if (pendingFadeTimer) {
-    clearTimeout(pendingFadeTimer);
-    pendingFadeTimer = null;
-  }
+  cancelVariant();
+  stopWalkFlipTimer();
   activeTheme = theme;
   cryUntilMs = 0;
   hovering = false;
-  lastAppliedRow = -1;
 
   if (!theme) {
     spriteEl.style.background = 'rgba(255,200,200,0.6)';
@@ -109,7 +162,7 @@ async function applyTheme(theme: ThemeAssets | null) {
   spriteEl.style.width = `${visibleW}px`;
   spriteEl.style.height = `${visibleH}px`;
   spriteEl.style.backgroundSize = `${m.columns * cellW}px ${m.rows * cellH}px`;
-  spriteEl.style.opacity = '1';
+  spriteEl.style.transform = 'scaleX(1)';
 
   await window.petAPI.setSize(visibleW, visibleH);
   if (gen !== applyGen) return;
@@ -123,7 +176,14 @@ async function applyTheme(theme: ThemeAssets | null) {
     maxMultiplier: 3.0
   });
 
-  controller.onStateChange(() => {
+  controller.onStateChange((s) => {
+    if (s === 'walk') {
+      cancelVariant();
+      startWalkFlipTimer();
+    } else {
+      stopWalkFlipTimer();
+      scheduleVariant();
+    }
     applyCurrentPose();
   });
 
@@ -134,6 +194,7 @@ async function applyTheme(theme: ThemeAssets | null) {
 
   applyCurrentPose();
   sprite.start();
+  scheduleVariant();
 }
 
 window.petAPI.getActiveTheme().then(applyTheme);
@@ -144,29 +205,29 @@ window.petAPI.onKeyTyped(() => {
   controller?.notifyKey();
 });
 
-// Right-click → settings.
 spriteEl.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   window.petAPI.openSettings();
 });
 
-// Double-click → still cry frame for cryDurationMs.
 spriteEl.addEventListener('dblclick', (e) => {
   e.preventDefault();
   if (!activeTheme) return;
   const m = activeTheme.meta;
+  cancelVariant();
   cryUntilMs = Date.now() + m.cryDurationMs;
   applyCurrentPose();
   setTimeout(() => {
     cryUntilMs = 0;
     applyCurrentPose();
+    if (controller?.state === 'idle') scheduleVariant();
   }, m.cryDurationMs);
 });
 
-// Hover → react pose for as long as the cursor is over the pet.
 spriteEl.addEventListener('mouseenter', () => {
   if (!activeTheme || Date.now() < cryUntilMs) return;
   hovering = true;
+  cancelVariant();
   applyCurrentPose();
 });
 spriteEl.addEventListener('mouseleave', () => {
@@ -174,9 +235,10 @@ spriteEl.addEventListener('mouseleave', () => {
   hovering = false;
   if (Date.now() < cryUntilMs) return;
   applyCurrentPose();
+  if (controller?.state === 'idle') scheduleVariant();
 });
 
-// Click-and-drag anywhere on the sprite moves the pet window.
+// Drag.
 const DRAG_THRESHOLD_PX = 3;
 
 interface DragState {
@@ -220,11 +282,9 @@ window.addEventListener('mouseup', () => {
   drag = null;
 });
 
-// Re-evaluate pose at 1-minute granularity so the night/day boundary at 22:00
-// or 06:00 swaps the idle pose without waiting for an event.
 setInterval(() => {
   if (!controller || controller.state !== 'idle') return;
-  if (Date.now() < cryUntilMs) return;
+  if (Date.now() < cryUntilMs || Date.now() < variantUntilMs) return;
   if (hovering) return;
   applyCurrentPose();
 }, 60_000);
