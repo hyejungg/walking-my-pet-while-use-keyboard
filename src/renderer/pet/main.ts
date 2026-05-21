@@ -118,7 +118,9 @@ function triggerVariant() {
   }
   const row = rows[Math.floor(Math.random() * rows.length)];
   variantUntilMs = Date.now() + VARIANT_DURATION_MS;
-  sprite.setRow({ row, count: m.columns, fps: m.fps });
+  // Variant is a single still frame so the pet "tries on" a pose rather
+  // than animating through it.
+  sprite.setRow({ row, count: 1, fps: m.fps });
   variantTimeout = setTimeout(() => {
     variantTimeout = null;
     variantUntilMs = 0;
