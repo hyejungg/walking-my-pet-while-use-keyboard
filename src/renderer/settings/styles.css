@@ -1,5 +1,7 @@
 body { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif; margin: 0; padding: 24px; background: #fafafa; color: #222; }
-h1 { font-size: 20px; margin: 0 0 16px; }
+.title { margin-bottom: 20px; }
+h1 { font-size: 20px; margin: 0; }
+.subtitle { margin: 4px 0 0; color: #666; font-size: 12px; }
 h2 { font-size: 13px; color: #666; margin: 20px 0 8px; }
 section { margin-bottom: 16px; }
 .theme-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }

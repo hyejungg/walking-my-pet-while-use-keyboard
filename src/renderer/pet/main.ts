@@ -11,10 +11,14 @@ let applyGen = 0;
 let cryUntilMs = 0;
 // One cell on the rendered sprite sheet, scaled. The pet window only shows
 // VISIBLE_FRACTION of cellW horizontally so cells that happen to pack more
-// than one character render as a single character.
+// than one character render as a single character. VERTICAL_PADDING_RATIO
+// stretches the visible window slightly past the cell's nominal height to
+// catch characters whose feet bleed below the frame boundary in the source
+// sheet (the small inter-cell margin in the sheet hides the overflow).
 let cellW = 0;
 let cellH = 0;
 const VISIBLE_FRACTION = 0.5;
+const VERTICAL_PADDING_RATIO = 0.1;
 
 const sprite = new PetSprite(({ col, row }) => {
   if (!activeTheme) return;
@@ -108,17 +112,18 @@ async function applyTheme(theme: ThemeAssets | null) {
   cellW = Math.round(m.frameWidth * scale);
   cellH = Math.round(m.frameHeight * scale);
   const visibleW = Math.round(cellW * VISIBLE_FRACTION);
+  const visibleH = Math.round(cellH * (1 + VERTICAL_PADDING_RATIO));
 
   spriteEl.style.background = 'transparent';
   spriteEl.style.backgroundImage = `url("${theme.spritesheetUrl}")`;
   spriteEl.style.backgroundRepeat = 'no-repeat';
   spriteEl.style.imageRendering = 'pixelated';
   spriteEl.style.width = `${visibleW}px`;
-  spriteEl.style.height = `${cellH}px`;
+  spriteEl.style.height = `${visibleH}px`;
   spriteEl.style.backgroundSize =
     `${m.columns * cellW}px ${m.rows * cellH}px`;
 
-  await window.petAPI.setSize(visibleW, cellH);
+  await window.petAPI.setSize(visibleW, visibleH);
   if (gen !== applyGen) return;
 
   controller = new PetController({
