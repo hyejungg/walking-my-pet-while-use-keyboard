@@ -11,7 +11,7 @@ let applyGen = 0;
 
 let cellW = 0;
 let cellH = 0;
-const VISIBLE_FRACTION = 0.6;
+const VISIBLE_FRACTION = 0.7;
 const VERTICAL_PADDING_RATIO = 0;
 
 // Priority-driven reaction state — the reaction with the highest priority

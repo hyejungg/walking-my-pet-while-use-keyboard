@@ -22,9 +22,9 @@ function activeTheme(): ThemeAssets | null {
 function spritePreview(t: ThemeAssets, width: number, row: number): HTMLDivElement {
   const m = t.meta;
   const height = Math.round(m.frameHeight * (width / m.frameWidth));
-  // Match the runtime crop: show only the left half of each cell so a single
-  // character fits the preview.
-  const visibleW = Math.round(width * 0.55);
+  // Match the runtime crop so the preview shows the same region the live pet
+  // does. Keep in sync with VISIBLE_FRACTION in renderer/pet/main.ts.
+  const visibleW = Math.round(width * 0.7);
   const el = document.createElement('div');
   el.className = 'sprite-preview';
   el.style.width = `${visibleW}px`;
