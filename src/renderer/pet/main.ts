@@ -2,11 +2,14 @@ import { PetSprite } from './pet-sprite';
 import { PetController } from './pet-controller';
 import type { ThemeAssets } from '@shared/theme-types';
 
+const DRAG_PADDING_PX = 8;
+
 const spriteEl = document.getElementById('pet-sprite') as HTMLDivElement;
 
 let activeTheme: ThemeAssets | null = null;
 let controller: PetController | null = null;
 let applyGen = 0;
+let cryUntilMs = 0;
 
 const sprite = new PetSprite(({ col, row }) => {
   const m = activeTheme?.meta;
@@ -15,10 +18,17 @@ const sprite = new PetSprite(({ col, row }) => {
     `-${col * m.renderWidth}px -${row * m.renderHeight}px`;
 });
 
+function restoreFromCry() {
+  if (!activeTheme || !controller) return;
+  const m = activeTheme.meta;
+  if (controller.state === 'walk') {
+    sprite.setRow({ row: m.walkRow, count: m.walkColumns, fps: m.fps });
+  } else {
+    sprite.setRow({ row: m.idleRow, count: m.idleColumns, fps: m.fps });
+  }
+}
+
 async function applyTheme(theme: ThemeAssets | null) {
-  // Each invocation gets a generation; an awaited handoff that resumes
-  // after a newer invocation started must bail to avoid two controllers
-  // running in parallel and leaking listeners onto PetSprite.
   const gen = ++applyGen;
 
   if (controller) {
@@ -26,6 +36,7 @@ async function applyTheme(theme: ThemeAssets | null) {
     controller = null;
   }
   activeTheme = theme;
+  cryUntilMs = 0;
 
   if (!theme) {
     spriteEl.style.background = 'rgba(255,200,200,0.6)';
@@ -41,7 +52,13 @@ async function applyTheme(theme: ThemeAssets | null) {
   spriteEl.style.height = `${m.renderHeight}px`;
   spriteEl.style.backgroundSize = `${m.columns * m.renderWidth}px ${m.rows * m.renderHeight}px`;
 
-  await window.petAPI.setSize(m.renderWidth, m.renderHeight);
+  // Window is sprite-size plus a thin transparent drag border so the sprite
+  // body stays clickable (right-click, double-click) while the perimeter is
+  // draggable.
+  await window.petAPI.setSize(
+    m.renderWidth + DRAG_PADDING_PX * 2,
+    m.renderHeight + DRAG_PADDING_PX * 2
+  );
   if (gen !== applyGen) return;
 
   controller = new PetController({
@@ -55,21 +72,16 @@ async function applyTheme(theme: ThemeAssets | null) {
 
   controller.onStateChange((s) => {
     if (!activeTheme) return;
+    if (Date.now() < cryUntilMs) return;
     const mm = activeTheme.meta;
     if (s === 'walk') sprite.setRow({ row: mm.walkRow, count: mm.walkColumns, fps: mm.fps });
     else sprite.setRow({ row: mm.idleRow, count: mm.idleColumns, fps: mm.fps });
   });
 
-  controller.onStep(({ dx, direction, speedMultiplier }) => {
+  controller.onStep(({ speedMultiplier }) => {
     if (!activeTheme) return;
-    spriteEl.style.transform = direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
+    // The pet walks in place: animate sprite frames but do not move the window.
     sprite.setFps(activeTheme.meta.fps * speedMultiplier);
-    // Fire-and-forget: awaiting per-tick would let two moveBy invokes overlap
-    // under load and reorder window setBounds calls. We only need the result
-    // for edge detection — apply it asynchronously.
-    void window.petAPI.moveBy(dx).then((result) => {
-      if (result.hitEdge && controller) controller.flipDirection();
-    });
   });
 
   sprite.setRow({ row: m.idleRow, count: m.idleColumns, fps: m.fps });
@@ -78,4 +90,24 @@ async function applyTheme(theme: ThemeAssets | null) {
 
 window.petAPI.getActiveTheme().then(applyTheme);
 window.petAPI.onActiveThemeChanged(applyTheme);
-window.petAPI.onKeyTyped(() => controller?.notifyKey());
+window.petAPI.onKeyTyped(() => {
+  if (Date.now() < cryUntilMs) return;
+  controller?.notifyKey();
+});
+
+// Right-click anywhere on the sprite opens the settings window.
+spriteEl.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  window.petAPI.openSettings();
+});
+
+// Double-click triggers the cry animation for cryDurationMs, then falls back
+// to whatever state the controller is currently in.
+spriteEl.addEventListener('dblclick', (e) => {
+  e.preventDefault();
+  if (!activeTheme) return;
+  const m = activeTheme.meta;
+  cryUntilMs = Date.now() + m.cryDurationMs;
+  sprite.setRow({ row: m.cryRow, count: m.cryColumns, fps: m.fps });
+  setTimeout(restoreFromCry, m.cryDurationMs);
+});

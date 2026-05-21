@@ -31,7 +31,7 @@ app.whenReady().then(() => {
 
   const savedPos = store.get('petPosition');
   petWindow = createPetWindow({ width, height, x: savedPos?.x, y: savedPos?.y });
-  registerPetWindowIpc(() => petWindow, store);
+  registerPetWindowIpc(() => petWindow, store, () => openSettingsWindow());
   registerSettingsIpc(
     store,
     () => petWindow,

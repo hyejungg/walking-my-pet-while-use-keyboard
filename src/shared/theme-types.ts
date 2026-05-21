@@ -11,6 +11,9 @@ export interface ThemeMeta {
   idleColumns: number;       // 해당 행에서 사용할 프레임 수 (≤ columns). 1이면 정지 이미지
   walkRow: number;           // walk 애니메이션이 위치한 행 인덱스
   walkColumns: number;       // 해당 행에서 사용할 프레임 수
+  cryRow: number;            // 더블클릭 시 표시할 우는 표정 행 인덱스
+  cryColumns: number;        // 해당 행에서 사용할 프레임 수
+  cryDurationMs: number;     // 우는 표정 표시 시간 (ms)
   fps: number;               // 기준 fps (KPS 1배일 때)
   stepPx: number;            // 기준 stepPx (KPS 1배일 때 윈도우가 한 step에 움직이는 px)
   renderWidth: number;       // 화면에 표시할 폭 (frameWidth와 다를 수 있음 — 스케일 다운/업용)

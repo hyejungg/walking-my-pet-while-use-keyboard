@@ -6,6 +6,7 @@ import type { ThemeAssets, ThemeMeta } from '@shared/theme-types';
 const NUMBER_FIELDS: Array<keyof ThemeMeta> = [
   'frameWidth', 'frameHeight', 'columns', 'rows',
   'idleRow', 'idleColumns', 'walkRow', 'walkColumns',
+  'cryRow', 'cryColumns', 'cryDurationMs',
   'fps', 'stepPx', 'renderWidth', 'renderHeight'
 ];
 

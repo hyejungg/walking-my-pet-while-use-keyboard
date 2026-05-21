@@ -8,6 +8,7 @@ const PET_MOVE_BY = 'pet:move-by';
 const PET_SET_SIZE = 'pet:set-size';
 const THEME_GET_ACTIVE = 'pet:theme-get-active';
 const THEME_SET_ACTIVE = 'pet:theme-set-active';
+const OPEN_SETTINGS = 'pet:open-settings';
 
 const api = {
   onKeyTyped(handler: () => void): () => void {
@@ -28,6 +29,9 @@ const api = {
     const listener = (_e: unknown, t: ThemeAssets | null) => handler(t);
     ipcRenderer.on(THEME_SET_ACTIVE, listener);
     return () => ipcRenderer.off(THEME_SET_ACTIVE, listener);
+  },
+  openSettings(): Promise<void> {
+    return ipcRenderer.invoke(OPEN_SETTINGS);
   }
 };
 

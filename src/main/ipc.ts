@@ -20,8 +20,13 @@ export function getThemesDir(): string {
 
 export function registerPetWindowIpc(
   getPetWindow: () => BrowserWindow | null,
-  store: SettingsStore
+  store: SettingsStore,
+  openSettings?: () => void
 ) {
+  if (openSettings) {
+    ipcMain.handle(IPC.OPEN_SETTINGS, () => openSettings());
+  }
+
   ipcMain.handle(IPC.PET_MOVE_BY, (_e, payload: { dx: number }) => {
     const win = getPetWindow();
     if (!win || win.isDestroyed()) return { hitEdge: null };

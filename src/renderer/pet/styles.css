@@ -24,5 +24,9 @@ html, body {
   image-rendering: pixelated;
   transform-origin: center center;
   transition: transform 80ms linear;
-  -webkit-app-region: drag;
+  /* The sprite body must NOT be a drag region so contextmenu/dblclick events
+     can reach the renderer. The thin border around it (8px in .pet) handles
+     dragging. */
+  -webkit-app-region: no-drag;
+  cursor: default;
 }

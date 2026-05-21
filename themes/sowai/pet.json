@@ -3,16 +3,19 @@
   "displayName": "Sowai",
   "description": "A compact mackerel-tabby cat digital pet that loafs like bread and walks around.",
   "spritesheetPath": "spritesheet.webp",
-  "frameWidth": 256,
+  "frameWidth": 128,
   "frameHeight": 208,
-  "columns": 6,
+  "columns": 12,
   "rows": 9,
   "idleRow": 0,
   "idleColumns": 1,
   "walkRow": 2,
   "walkColumns": 6,
+  "cryRow": 5,
+  "cryColumns": 4,
+  "cryDurationMs": 1500,
   "fps": 8,
   "stepPx": 6,
-  "renderWidth": 160,
-  "renderHeight": 130
+  "renderWidth": 128,
+  "renderHeight": 208
 }
