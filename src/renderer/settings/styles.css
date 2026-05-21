@@ -4,13 +4,40 @@ h1 { font-size: 20px; margin: 0; }
 .subtitle { margin: 4px 0 0; color: #666; font-size: 12px; }
 h2 { font-size: 13px; color: #666; margin: 20px 0 8px; }
 section { margin-bottom: 16px; }
+.hint { font-size: 12px; color: #888; margin: 0 0 10px; }
 .theme-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .theme-card { border: 2px solid transparent; border-radius: 8px; padding: 8px; background: white; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .theme-card.selected { border-color: #4a90e2; }
-.theme-preview { max-width: 100%; }
 .theme-card .name { font-size: 12px; }
 .size-options { display: flex; gap: 16px; }
 .size-option { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
 .row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
 .row-btn { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; background: white; cursor: pointer; font-size: 13px; font-family: inherit; }
 .row-btn:hover { background: #f0f0f0; }
+
+.sprite-preview { flex-shrink: 0; }
+.sprite-preview.placeholder {
+  width: 46px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+.reaction-list { display: flex; flex-direction: column; gap: 6px; }
+.reaction-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+.reaction-body { display: flex; flex-direction: column; gap: 2px; }
+.reaction-title { font-size: 13px; font-weight: 600; }
+.reaction-trigger { font-size: 12px; color: #555; }
+.reaction-extra { font-size: 11px; color: #888; }

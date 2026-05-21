@@ -1,9 +1,11 @@
-import type { ThemeAssets } from '@shared/theme-types';
+import type { ThemeAssets, ThemeMeta } from '@shared/theme-types';
 import type { AppSettings, PetSize } from '@shared/settings-schema';
 
-const PREVIEW_W = 96;
+const PREVIEW_W = 72;
+const REACTION_PREVIEW_W = 84;
 
 const themeListEl = document.getElementById('theme-list') as HTMLDivElement;
+const reactionListEl = document.getElementById('reaction-list') as HTMLDivElement;
 const autoLaunchEl = document.getElementById('auto-launch') as HTMLInputElement;
 const resetBtn = document.getElementById('reset-position') as HTMLButtonElement;
 const sizeRadios = Array.from(
@@ -13,36 +15,45 @@ const sizeRadios = Array.from(
 let settings: AppSettings;
 let themes: ThemeAssets[] = [];
 
+function activeTheme(): ThemeAssets | null {
+  return themes.find(t => t.meta.id === settings.activeThemeId) ?? themes[0] ?? null;
+}
+
+function spritePreview(t: ThemeAssets, width: number, row: number): HTMLDivElement {
+  const m = t.meta;
+  const height = Math.round(m.frameHeight * (width / m.frameWidth));
+  // Match the runtime crop: show only the left half of each cell so a single
+  // character fits the preview.
+  const visibleW = Math.round(width * 0.55);
+  const el = document.createElement('div');
+  el.className = 'sprite-preview';
+  el.style.width = `${visibleW}px`;
+  el.style.height = `${height}px`;
+  el.style.backgroundImage = `url("${t.spritesheetUrl}")`;
+  el.style.backgroundSize = `${m.columns * width}px ${m.rows * height}px`;
+  el.style.backgroundPosition = `0px -${row * height}px`;
+  el.style.backgroundRepeat = 'no-repeat';
+  el.style.imageRendering = 'pixelated';
+  return el;
+}
+
 function renderThemes() {
   themeListEl.innerHTML = '';
   for (const t of themes) {
     const m = t.meta;
-    // Scale every preview to a fixed width while preserving the frame ratio
-    // so cards line up regardless of the theme's native frame size.
-    const previewW = PREVIEW_W;
-    const previewH = Math.round(m.frameHeight * (previewW / m.frameWidth));
-
     const card = document.createElement('div');
     card.className = 'theme-card' + (m.id === settings.activeThemeId ? ' selected' : '');
-    const preview = document.createElement('div');
-    preview.className = 'theme-preview';
-    preview.style.width = `${previewW}px`;
-    preview.style.height = `${previewH}px`;
-    preview.style.backgroundImage = `url("${t.spritesheetUrl}")`;
-    preview.style.backgroundSize = `${m.columns * previewW}px ${m.rows * previewH}px`;
-    preview.style.backgroundPosition = `0px -${m.idleRow * previewH}px`;
-    preview.style.backgroundRepeat = 'no-repeat';
-    preview.style.imageRendering = 'pixelated';
+    card.appendChild(spritePreview(t, PREVIEW_W, m.idleRow));
 
     const name = document.createElement('span');
     name.className = 'name';
     name.textContent = m.displayName;
-
-    card.appendChild(preview);
     card.appendChild(name);
+
     card.addEventListener('click', async () => {
       settings = await window.settingsAPI.setSettings({ activeThemeId: m.id });
       renderThemes();
+      renderReactions();
     });
     themeListEl.appendChild(card);
   }
@@ -54,6 +65,87 @@ function renderSize() {
   }
 }
 
+interface Reaction {
+  title: string;
+  trigger: string;
+  rowKey: keyof Pick<
+    ThemeMeta,
+    'idleRow' | 'walkRow' | 'cryRow' | 'hoverRow' | 'cheerRow' | 'dizzyRow' | 'sleepRow'
+  >;
+  thresholdNote?: (m: ThemeMeta) => string;
+}
+
+const REACTIONS: Reaction[] = [
+  { title: '기본 자세', trigger: '아무 입력도 없을 때', rowKey: 'idleRow' },
+  { title: '걷기', trigger: '타자를 치면', rowKey: 'walkRow' },
+  {
+    title: '축하',
+    trigger: '많이 타이핑하면',
+    rowKey: 'cheerRow',
+    thresholdNote: (m) => `${m.cheerThreshold}타마다 잠깐 등장`
+  },
+  { title: '우는 표정', trigger: '펫을 더블클릭하면', rowKey: 'cryRow' },
+  { title: '쳐다보기', trigger: '마우스를 올리면', rowKey: 'hoverRow' },
+  { title: '어지러움', trigger: '펫을 잡고 좌우로 흔들면', rowKey: 'dizzyRow' },
+  { title: '잠자기', trigger: '밤(22시–6시)에', rowKey: 'sleepRow' }
+];
+
+function renderReactions() {
+  reactionListEl.innerHTML = '';
+  const t = activeTheme();
+  if (!t) return;
+  const m = t.meta;
+  for (const r of REACTIONS) {
+    const card = document.createElement('div');
+    card.className = 'reaction-card';
+    card.appendChild(spritePreview(t, REACTION_PREVIEW_W, m[r.rowKey]));
+
+    const body = document.createElement('div');
+    body.className = 'reaction-body';
+
+    const title = document.createElement('div');
+    title.className = 'reaction-title';
+    title.textContent = r.title;
+    body.appendChild(title);
+
+    const trig = document.createElement('div');
+    trig.className = 'reaction-trigger';
+    trig.textContent = r.trigger;
+    body.appendChild(trig);
+
+    if (r.thresholdNote) {
+      const extra = document.createElement('div');
+      extra.className = 'reaction-extra';
+      extra.textContent = r.thresholdNote(m);
+      body.appendChild(extra);
+    }
+
+    card.appendChild(body);
+    reactionListEl.appendChild(card);
+  }
+
+  // Variant (random other poses) — explain even though it has no fixed row.
+  const variantCard = document.createElement('div');
+  variantCard.className = 'reaction-card';
+  const variantPlaceholder = document.createElement('div');
+  variantPlaceholder.className = 'sprite-preview placeholder';
+  variantPlaceholder.textContent = '🎲';
+  variantCard.appendChild(variantPlaceholder);
+
+  const variantBody = document.createElement('div');
+  variantBody.className = 'reaction-body';
+  const vt = document.createElement('div');
+  vt.className = 'reaction-title';
+  vt.textContent = '랜덤 자세';
+  const vtr = document.createElement('div');
+  vtr.className = 'reaction-trigger';
+  vtr.textContent = '가만히 두면 8–18초마다 다른 자세를 보여줘요';
+  variantBody.appendChild(vt);
+  variantBody.appendChild(vtr);
+  variantCard.appendChild(variantBody);
+  reactionListEl.appendChild(variantCard);
+}
+
 async function init() {
   [settings, themes] = await Promise.all([
     window.settingsAPI.getSettings(),
@@ -62,6 +154,7 @@ async function init() {
   autoLaunchEl.checked = settings.autoLaunch;
   renderSize();
   renderThemes();
+  renderReactions();
 }
 
 autoLaunchEl.addEventListener('change', async () => {

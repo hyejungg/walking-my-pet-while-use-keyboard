@@ -12,8 +12,19 @@ export interface ThemeMeta {
   walkRow: number;           // walk 애니메이션이 위치한 행 인덱스
   walkColumns: number;       // 해당 행에서 사용할 프레임 수
   cryRow: number;            // 더블클릭 시 표시할 우는 표정 행 인덱스
-  cryColumns: number;        // 해당 행에서 사용할 프레임 수
+  cryColumns: number;        // 해당 행에서 사용할 프레임 수 (1이면 정지 프레임)
   cryDurationMs: number;     // 우는 표정 표시 시간 (ms)
+  hoverRow: number;          // 마우스 호버 시 표시할 행 인덱스
+  hoverColumns: number;      // 해당 행에서 사용할 프레임 수 (1이면 정지)
+  cheerRow: number;          // 누적 타자 달성 시 축하 자세 행 인덱스
+  cheerColumns: number;
+  cheerThreshold: number;    // 몇 타마다 축하 자세 발동할지
+  cheerDurationMs: number;
+  dizzyRow: number;          // 흔들기 감지 시 어지러운 자세 행 인덱스
+  dizzyColumns: number;
+  dizzyDurationMs: number;
+  sleepRow: number;          // 밤 시간대(22-06) idle 대체 자세
+  sleepColumns: number;
   fps: number;               // 기준 fps (KPS 1배일 때)
   stepPx: number;            // 기준 stepPx (KPS 1배일 때 윈도우가 한 step에 움직이는 px)
   renderWidth: number;       // 화면에 표시할 폭 (frameWidth와 다를 수 있음 — 스케일 다운/업용)
