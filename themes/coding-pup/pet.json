@@ -1,11 +1,11 @@
 {
   "id": "coding-pup",
-  "displayName": "Coding Pup",
+  "displayName": "코딩 강아지",
   "description": "A black-and-white coding dog companion inspired by the provided photo.",
   "spritesheetPath": "spritesheet.webp",
-  "frameWidth": 128,
+  "frameWidth": 256,
   "frameHeight": 208,
-  "columns": 12,
+  "columns": 6,
   "rows": 9,
   "idleRow": 0,
   "idleColumns": 1,
@@ -17,5 +17,5 @@
   "fps": 8,
   "stepPx": 6,
   "renderWidth": 128,
-  "renderHeight": 208
+  "renderHeight": 104
 }

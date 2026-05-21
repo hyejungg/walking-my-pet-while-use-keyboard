@@ -1,8 +1,7 @@
 import { PetSprite } from './pet-sprite';
 import { PetController } from './pet-controller';
 import type { ThemeAssets } from '@shared/theme-types';
-
-const DRAG_PADDING_PX = 8;
+import { PET_SIZE_SCALE } from '@shared/settings-schema';
 
 const spriteEl = document.getElementById('pet-sprite') as HTMLDivElement;
 
@@ -10,12 +9,13 @@ let activeTheme: ThemeAssets | null = null;
 let controller: PetController | null = null;
 let applyGen = 0;
 let cryUntilMs = 0;
+let effectiveRenderWidth = 0;
+let effectiveRenderHeight = 0;
 
 const sprite = new PetSprite(({ col, row }) => {
-  const m = activeTheme?.meta;
-  if (!m) return;
+  if (!activeTheme) return;
   spriteEl.style.backgroundPosition =
-    `-${col * m.renderWidth}px -${row * m.renderHeight}px`;
+    `-${col * effectiveRenderWidth}px -${row * effectiveRenderHeight}px`;
 });
 
 function restoreFromCry() {
@@ -44,21 +44,23 @@ async function applyTheme(theme: ThemeAssets | null) {
   }
 
   const m = theme.meta;
+  const settings = await window.petAPI.getSettings();
+  if (gen !== applyGen) return;
+
+  const scale = PET_SIZE_SCALE[settings.petSize];
+  effectiveRenderWidth = Math.round(m.frameWidth * scale);
+  effectiveRenderHeight = Math.round(m.frameHeight * scale);
+
   spriteEl.style.background = 'transparent';
   spriteEl.style.backgroundImage = `url("${theme.spritesheetUrl}")`;
   spriteEl.style.backgroundRepeat = 'no-repeat';
   spriteEl.style.imageRendering = 'pixelated';
-  spriteEl.style.width = `${m.renderWidth}px`;
-  spriteEl.style.height = `${m.renderHeight}px`;
-  spriteEl.style.backgroundSize = `${m.columns * m.renderWidth}px ${m.rows * m.renderHeight}px`;
+  spriteEl.style.width = `${effectiveRenderWidth}px`;
+  spriteEl.style.height = `${effectiveRenderHeight}px`;
+  spriteEl.style.backgroundSize =
+    `${m.columns * effectiveRenderWidth}px ${m.rows * effectiveRenderHeight}px`;
 
-  // Window is sprite-size plus a thin transparent drag border so the sprite
-  // body stays clickable (right-click, double-click) while the perimeter is
-  // draggable.
-  await window.petAPI.setSize(
-    m.renderWidth + DRAG_PADDING_PX * 2,
-    m.renderHeight + DRAG_PADDING_PX * 2
-  );
+  await window.petAPI.setSize(effectiveRenderWidth, effectiveRenderHeight);
   if (gen !== applyGen) return;
 
   controller = new PetController({
@@ -80,7 +82,7 @@ async function applyTheme(theme: ThemeAssets | null) {
 
   controller.onStep(({ speedMultiplier }) => {
     if (!activeTheme) return;
-    // The pet walks in place: animate sprite frames but do not move the window.
+    // Walk in place: animate sprite frames but do not move the window.
     sprite.setFps(activeTheme.meta.fps * speedMultiplier);
   });
 
@@ -101,8 +103,7 @@ spriteEl.addEventListener('contextmenu', (e) => {
   window.petAPI.openSettings();
 });
 
-// Double-click triggers the cry animation for cryDurationMs, then falls back
-// to whatever state the controller is currently in.
+// Double-click plays cry animation for cryDurationMs.
 spriteEl.addEventListener('dblclick', (e) => {
   e.preventDefault();
   if (!activeTheme) return;
@@ -110,4 +111,50 @@ spriteEl.addEventListener('dblclick', (e) => {
   cryUntilMs = Date.now() + m.cryDurationMs;
   sprite.setRow({ row: m.cryRow, count: m.cryColumns, fps: m.fps });
   setTimeout(restoreFromCry, m.cryDurationMs);
+});
+
+// Click-and-drag anywhere on the sprite moves the pet window. Only enters
+// drag mode after the cursor actually moves so single/double clicks are
+// undisturbed.
+const DRAG_THRESHOLD_PX = 3;
+
+interface DragState {
+  startMx: number;
+  startMy: number;
+  startWx: number;
+  startWy: number;
+  active: boolean;
+}
+
+let drag: DragState | null = null;
+
+spriteEl.addEventListener('mousedown', async (e) => {
+  if (e.button !== 0) return;
+  const bounds = await window.petAPI.getBounds();
+  if (!bounds) return;
+  drag = {
+    startMx: e.screenX,
+    startMy: e.screenY,
+    startWx: bounds.x,
+    startWy: bounds.y,
+    active: false
+  };
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!drag) return;
+  const dx = e.screenX - drag.startMx;
+  const dy = e.screenY - drag.startMy;
+  if (!drag.active) {
+    if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+    drag.active = true;
+    spriteEl.classList.add('dragging');
+  }
+  window.petAPI.setPosition(drag.startWx + dx, drag.startWy + dy);
+});
+
+window.addEventListener('mouseup', () => {
+  if (!drag) return;
+  spriteEl.classList.remove('dragging');
+  drag = null;
 });

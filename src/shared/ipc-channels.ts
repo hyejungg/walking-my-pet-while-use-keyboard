@@ -8,6 +8,8 @@ export const IPC = {
   PET_MOVE_BY: 'pet:move-by',
   PET_SET_SIZE: 'pet:set-size',
   PET_POSITION_RESET: 'pet:position-reset',
+  PET_GET_BOUNDS: 'pet:get-bounds',
+  PET_SET_POSITION: 'pet:set-position',
   OPEN_SETTINGS: 'pet:open-settings'
 } as const;
 

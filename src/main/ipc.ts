@@ -40,6 +40,19 @@ export function registerPetWindowIpc(
     resizePetWindow(win, payload.width, payload.height);
   });
 
+  ipcMain.handle(IPC.PET_GET_BOUNDS, () => {
+    const win = getPetWindow();
+    if (!win || win.isDestroyed()) return null;
+    return win.getBounds();
+  });
+
+  ipcMain.handle(IPC.PET_SET_POSITION, (_e, payload: { x: number; y: number }) => {
+    const win = getPetWindow();
+    if (!win || win.isDestroyed()) return;
+    const b = win.getBounds();
+    win.setBounds({ x: Math.round(payload.x), y: Math.round(payload.y), width: b.width, height: b.height });
+  });
+
   ipcMain.handle(IPC.THEMES_LIST, (): ThemeAssets[] => loadThemes(getThemesDir()));
 
   ipcMain.handle(IPC.THEME_GET_ACTIVE, (): ThemeAssets | null => {
@@ -69,9 +82,14 @@ export function registerSettingsIpc(
   ipcMain.handle(IPC.SETTINGS_SET, (_e, patch: Partial<AppSettings>): AppSettings => {
     store.update(patch);
 
-    if (patch.activeThemeId) {
+    // Any change that affects how the pet is rendered (theme switch or size
+    // selection) should re-broadcast the current active theme so the renderer
+    // recomputes window size + sprite scale.
+    if (patch.activeThemeId !== undefined || patch.petSize !== undefined) {
       const all = loadThemes(getThemesDir());
-      const active = all.find(t => t.meta.id === patch.activeThemeId) ?? null;
+      const activeId = patch.activeThemeId ?? store.get('activeThemeId');
+      const active =
+        all.find(t => t.meta.id === activeId) ?? all[0] ?? null;
       const win = getPetWindow();
       if (win && !win.isDestroyed()) {
         win.webContents.send(IPC.THEME_SET_ACTIVE, active);
