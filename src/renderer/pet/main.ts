@@ -9,13 +9,16 @@ let activeTheme: ThemeAssets | null = null;
 let controller: PetController | null = null;
 let applyGen = 0;
 let cryUntilMs = 0;
-let effectiveRenderWidth = 0;
-let effectiveRenderHeight = 0;
+// One cell on the rendered sprite sheet, scaled. The pet window only shows
+// VISIBLE_FRACTION of cellW horizontally so cells that happen to pack more
+// than one character render as a single character.
+let cellW = 0;
+let cellH = 0;
+const VISIBLE_FRACTION = 0.5;
 
 const sprite = new PetSprite(({ col, row }) => {
   if (!activeTheme) return;
-  spriteEl.style.backgroundPosition =
-    `-${col * effectiveRenderWidth}px -${row * effectiveRenderHeight}px`;
+  spriteEl.style.backgroundPosition = `-${col * cellW}px -${row * cellH}px`;
 });
 
 function restoreFromCry() {
@@ -25,7 +28,60 @@ function restoreFromCry() {
     sprite.setRow({ row: m.walkRow, count: m.walkColumns, fps: m.fps });
   } else {
     sprite.setRow({ row: m.idleRow, count: m.idleColumns, fps: m.fps });
+    scheduleVariant();
   }
+}
+
+// Idle-time variety: while the pet is idle, occasionally play a different
+// row from the sprite sheet so the user sees more poses than just idle.
+// Walk row, cry row, and the idle row itself are excluded so variants are
+// genuinely new poses.
+const VARIANT_MIN_WAIT_MS = 8_000;
+const VARIANT_MAX_WAIT_MS = 18_000;
+const VARIANT_DURATION_MS = 2_500;
+
+let variantTimer: ReturnType<typeof setTimeout> | null = null;
+let variantUntilMs = 0;
+
+function cancelVariant() {
+  if (variantTimer) {
+    clearTimeout(variantTimer);
+    variantTimer = null;
+  }
+  variantUntilMs = 0;
+}
+
+function scheduleVariant() {
+  if (variantTimer) clearTimeout(variantTimer);
+  const wait = VARIANT_MIN_WAIT_MS + Math.random() * (VARIANT_MAX_WAIT_MS - VARIANT_MIN_WAIT_MS);
+  variantTimer = setTimeout(triggerVariant, wait);
+}
+
+function triggerVariant() {
+  variantTimer = null;
+  if (!activeTheme || !controller) return;
+  if (controller.state !== 'idle' || Date.now() < cryUntilMs) {
+    scheduleVariant();
+    return;
+  }
+  const m = activeTheme.meta;
+  const rows: number[] = [];
+  for (let r = 0; r < m.rows; r++) {
+    if (r === m.idleRow || r === m.walkRow || r === m.cryRow) continue;
+    rows.push(r);
+  }
+  if (rows.length === 0) return;
+  const row = rows[Math.floor(Math.random() * rows.length)];
+  sprite.setRow({ row, count: m.columns, fps: m.fps });
+  variantUntilMs = Date.now() + VARIANT_DURATION_MS;
+  setTimeout(() => {
+    variantUntilMs = 0;
+    if (!activeTheme || !controller) return;
+    if (controller.state === 'idle' && Date.now() >= cryUntilMs) {
+      sprite.setRow({ row: m.idleRow, count: m.idleColumns, fps: m.fps });
+    }
+    scheduleVariant();
+  }, VARIANT_DURATION_MS);
 }
 
 async function applyTheme(theme: ThemeAssets | null) {
@@ -35,6 +91,7 @@ async function applyTheme(theme: ThemeAssets | null) {
     controller.dispose();
     controller = null;
   }
+  cancelVariant();
   activeTheme = theme;
   cryUntilMs = 0;
 
@@ -48,19 +105,20 @@ async function applyTheme(theme: ThemeAssets | null) {
   if (gen !== applyGen) return;
 
   const scale = PET_SIZE_SCALE[settings.petSize];
-  effectiveRenderWidth = Math.round(m.frameWidth * scale);
-  effectiveRenderHeight = Math.round(m.frameHeight * scale);
+  cellW = Math.round(m.frameWidth * scale);
+  cellH = Math.round(m.frameHeight * scale);
+  const visibleW = Math.round(cellW * VISIBLE_FRACTION);
 
   spriteEl.style.background = 'transparent';
   spriteEl.style.backgroundImage = `url("${theme.spritesheetUrl}")`;
   spriteEl.style.backgroundRepeat = 'no-repeat';
   spriteEl.style.imageRendering = 'pixelated';
-  spriteEl.style.width = `${effectiveRenderWidth}px`;
-  spriteEl.style.height = `${effectiveRenderHeight}px`;
+  spriteEl.style.width = `${visibleW}px`;
+  spriteEl.style.height = `${cellH}px`;
   spriteEl.style.backgroundSize =
-    `${m.columns * effectiveRenderWidth}px ${m.rows * effectiveRenderHeight}px`;
+    `${m.columns * cellW}px ${m.rows * cellH}px`;
 
-  await window.petAPI.setSize(effectiveRenderWidth, effectiveRenderHeight);
+  await window.petAPI.setSize(visibleW, cellH);
   if (gen !== applyGen) return;
 
   controller = new PetController({
@@ -76,8 +134,16 @@ async function applyTheme(theme: ThemeAssets | null) {
     if (!activeTheme) return;
     if (Date.now() < cryUntilMs) return;
     const mm = activeTheme.meta;
-    if (s === 'walk') sprite.setRow({ row: mm.walkRow, count: mm.walkColumns, fps: mm.fps });
-    else sprite.setRow({ row: mm.idleRow, count: mm.idleColumns, fps: mm.fps });
+    if (s === 'walk') {
+      cancelVariant();
+      sprite.setRow({ row: mm.walkRow, count: mm.walkColumns, fps: mm.fps });
+    } else {
+      // Don't stomp on a variant that's still playing.
+      if (Date.now() >= variantUntilMs) {
+        sprite.setRow({ row: mm.idleRow, count: mm.idleColumns, fps: mm.fps });
+      }
+      scheduleVariant();
+    }
   });
 
   controller.onStep(({ speedMultiplier }) => {
@@ -88,6 +154,7 @@ async function applyTheme(theme: ThemeAssets | null) {
 
   sprite.setRow({ row: m.idleRow, count: m.idleColumns, fps: m.fps });
   sprite.start();
+  scheduleVariant();
 }
 
 window.petAPI.getActiveTheme().then(applyTheme);
@@ -108,6 +175,7 @@ spriteEl.addEventListener('dblclick', (e) => {
   e.preventDefault();
   if (!activeTheme) return;
   const m = activeTheme.meta;
+  cancelVariant();
   cryUntilMs = Date.now() + m.cryDurationMs;
   sprite.setRow({ row: m.cryRow, count: m.cryColumns, fps: m.fps });
   setTimeout(restoreFromCry, m.cryDurationMs);
