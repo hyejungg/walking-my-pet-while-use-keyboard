@@ -91,16 +91,15 @@ const REACTIONS: Reaction[] = [
   { title: '클릭 반응', trigger: '펫을 한 번 클릭하면',
     preview: (m) => ({ row: m.clickRow, col: 2 }) },
 
-  { title: '물음표(?) 반응', trigger: '타이핑 중 ?(또는 /)를 치면',
-    preview: (m) => ({ row: m.questionRow, col: 2 }) },
-
   // sleep: later cell so the eyes-closed frame is more likely
   { title: '잠자기', trigger: '1분 동안 가만히 두면',
     preview: (m) => ({ row: m.sleepRow, col: 4 }) },
 
-  // call: dynamically named per theme — see init() below for the trigger text
-  { title: '이름 부르기', trigger: '펫 이름을 타이핑하면',
-    preview: (m) => ({ row: m.callRow, col: 0 }) }
+  // question + call share the same row (callRow == questionRow), so collapse
+  // them into one card with a combined trigger label.
+  { title: '갸우뚱 (물음표·이름 부르기)',
+    trigger: '타이핑 중 ?를 치거나 펫 이름을 부르면',
+    preview: (m) => ({ row: m.callRow, col: 2 }) }
 ];
 
 function renderReactions() {
