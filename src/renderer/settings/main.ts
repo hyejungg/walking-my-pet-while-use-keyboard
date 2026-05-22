@@ -19,21 +19,16 @@ function activeTheme(): ThemeAssets | null {
   return themes.find(t => t.meta.id === settings.activeThemeId) ?? themes[0] ?? null;
 }
 
-function spritePreview(t: ThemeAssets, width: number, row: number): HTMLDivElement {
+function spritePreview(t: ThemeAssets, width: number, row: number, col: number = 0): HTMLDivElement {
   const m = t.meta;
   const height = Math.round(m.frameHeight * (width / m.frameWidth));
-  // Match the runtime crop so the preview shows the same region the live pet
-  // does. Keep in sync with VISIBLE_FRACTION in renderer/pet/main.ts.
-  // Match VISIBLE_FRACTION in renderer/pet/main.ts (1.0 since frameWidth is
-   // now per-character).
-  const visibleW = width;
   const el = document.createElement('div');
   el.className = 'sprite-preview';
-  el.style.width = `${visibleW}px`;
+  el.style.width = `${width}px`;
   el.style.height = `${height}px`;
   el.style.backgroundImage = `url("${t.spritesheetUrl}")`;
   el.style.backgroundSize = `${m.columns * width}px ${m.rows * height}px`;
-  el.style.backgroundPosition = `0px -${row * height}px`;
+  el.style.backgroundPosition = `-${col * width}px -${row * height}px`;
   el.style.backgroundRepeat = 'no-repeat';
   el.style.imageRendering = 'pixelated';
   return el;
@@ -67,21 +62,41 @@ function renderSize() {
   }
 }
 
+interface PreviewFrame { row: number; col: number; }
+
 interface Reaction {
   title: string;
   trigger: string;
-  /** Returns the row to use as the static preview thumbnail. */
-  previewRow(m: ThemeMeta): number;
+  /** Returns the row+col to use as the static preview thumbnail. */
+  preview(m: ThemeMeta): PreviewFrame;
 }
 
 const REACTIONS: Reaction[] = [
-  { title: '기본 자세', trigger: '아무 입력도 없을 때', previewRow: (m) => m.idleRow },
-  { title: '걷기', trigger: '타자를 치면', previewRow: (m) => m.walkRows[0] },
-  { title: '쳐다보기', trigger: '마우스를 올리면', previewRow: (m) => m.hoverRows[0] },
-  { title: '우는 표정', trigger: '펫을 더블클릭하면', previewRow: (m) => m.cryRow },
-  { title: '클릭 반응', trigger: '펫을 한 번 클릭하면', previewRow: (m) => m.clickRow },
-  { title: 'ᆞ(마침표) 반응', trigger: '타이핑 중 마침표(.)를 치면', previewRow: (m) => m.dotRow },
-  { title: '잠자기', trigger: '1분 동안 가만히 두면', previewRow: (m) => m.sleepRow }
+  // idle: first cell of the loaf row
+  { title: '기본 자세', trigger: '아무 입력도 없을 때',
+    preview: (m) => ({ row: m.idleRow, col: 0 }) },
+
+  // walk: middle frame of the second walk row (mid-stride, clearly walking)
+  { title: '걷기', trigger: '타자를 치면',
+    preview: (m) => ({ row: m.walkRows[m.walkRows.length - 1], col: 2 }) },
+
+  // hover: the larger forward-staring pose lives on the second hover row
+  { title: '쳐다보기', trigger: '마우스를 올리면',
+    preview: (m) => ({ row: m.hoverRows[m.hoverRows.length - 1], col: 0 }) },
+
+  // cry: a mid-cycle cell of the cry row reads as "actually crying"
+  { title: '우는 표정', trigger: '펫을 더블클릭하면',
+    preview: (m) => ({ row: m.cryRow, col: 4 }) },
+
+  { title: '클릭 반응', trigger: '펫을 한 번 클릭하면',
+    preview: (m) => ({ row: m.clickRow, col: 2 }) },
+
+  { title: '마침표(.) 반응', trigger: '타이핑 중 마침표(.)를 치면',
+    preview: (m) => ({ row: m.dotRow, col: 2 }) },
+
+  // sleep: later cell so the eyes-closed frame is more likely
+  { title: '잠자기', trigger: '1분 동안 가만히 두면',
+    preview: (m) => ({ row: m.sleepRow, col: 4 }) }
 ];
 
 function renderReactions() {
@@ -92,7 +107,8 @@ function renderReactions() {
   for (const r of REACTIONS) {
     const card = document.createElement('div');
     card.className = 'reaction-card';
-    card.appendChild(spritePreview(t, REACTION_PREVIEW_W, r.previewRow(m)));
+    const { row, col } = r.preview(m);
+    card.appendChild(spritePreview(t, REACTION_PREVIEW_W, row, col));
 
     const body = document.createElement('div');
     body.className = 'reaction-body';
