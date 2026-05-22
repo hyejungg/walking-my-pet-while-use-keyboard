@@ -24,7 +24,9 @@ function spritePreview(t: ThemeAssets, width: number, row: number): HTMLDivEleme
   const height = Math.round(m.frameHeight * (width / m.frameWidth));
   // Match the runtime crop so the preview shows the same region the live pet
   // does. Keep in sync with VISIBLE_FRACTION in renderer/pet/main.ts.
-  const visibleW = Math.round(width * 0.75);
+  // Match VISIBLE_FRACTION in renderer/pet/main.ts (1.0 since frameWidth is
+   // now per-character).
+  const visibleW = width;
   const el = document.createElement('div');
   el.className = 'sprite-preview';
   el.style.width = `${visibleW}px`;

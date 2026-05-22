@@ -11,7 +11,8 @@ let applyGen = 0;
 
 let cellW = 0;
 let cellH = 0;
-const VISIBLE_FRACTION = 0.75;
+// frameWidth 192 already corresponds to exactly one character — no extra crop.
+const VISIBLE_FRACTION = 1.0;
 const VERTICAL_PADDING_RATIO = 0;
 
 let cryUntilMs = 0;
