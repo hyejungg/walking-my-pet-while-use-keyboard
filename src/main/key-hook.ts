@@ -1,17 +1,29 @@
-import { uIOhook } from 'uiohook-napi';
+import { uIOhook, UiohookKey } from 'uiohook-napi';
 import { EventEmitter } from 'node:events';
+
+export interface KeyEvent {
+  keycode: number;
+  isDot: boolean;
+}
 
 export interface KeyHook {
   start(): void;
   stop(): void;
-  on(event: 'key', listener: () => void): void;
+  on(event: 'key', listener: (e: KeyEvent) => void): void;
 }
+
+// uiohook-napi exports a UiohookKey enum; Period is the '.' key on every
+// platform it supports. Fall back to the documented constant if the enum
+// import ever drifts.
+const PERIOD_KEYCODE = (UiohookKey as Record<string, number>).Period ?? 52;
 
 export function createKeyHook(): KeyHook {
   const emitter = new EventEmitter();
   let started = false;
 
-  const onKeydown = () => emitter.emit('key');
+  const onKeydown = (e: { keycode: number }) => {
+    emitter.emit('key', { keycode: e.keycode, isDot: e.keycode === PERIOD_KEYCODE });
+  };
 
   return {
     start(): void {

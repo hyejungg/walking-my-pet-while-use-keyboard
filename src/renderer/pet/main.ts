@@ -1,4 +1,4 @@
-import { PetSprite } from './pet-sprite';
+import { PetSprite, FrameIndex } from './pet-sprite';
 import { PetController } from './pet-controller';
 import type { ThemeAssets } from '@shared/theme-types';
 import { PET_SIZE_SCALE } from '@shared/settings-schema';
@@ -11,26 +11,36 @@ let applyGen = 0;
 
 let cellW = 0;
 let cellH = 0;
-// frameWidth 192 already corresponds to exactly one character — no extra crop.
 const VISIBLE_FRACTION = 1.0;
 const VERTICAL_PADDING_RATIO = 0;
-
-// Sleep after this much continuous idle time.
 const SLEEP_AFTER_IDLE_MS = 60_000;
+// How long we wait for a possible dblclick before treating a mouseup as a
+// single click. macOS double-click threshold is ~300ms.
+const SINGLE_CLICK_DELAY_MS = 280;
 
 let cryUntilMs = 0;
+let clickUntilMs = 0;
+let dotUntilMs = 0;
 let hovering = false;
 let sleeping = false;
 let sleepTimer: ReturnType<typeof setTimeout> | null = null;
+let singleClickTimer: ReturnType<typeof setTimeout> | null = null;
 
-const sprite = new PetSprite(({ col, row }) => {
+const sprite = new PetSprite((frame: FrameIndex) => {
   if (!activeTheme) return;
-  spriteEl.style.backgroundPosition = `-${col * cellW}px -${row * cellH}px`;
+  spriteEl.style.backgroundPosition = `-${frame.col * cellW}px -${frame.row * cellH}px`;
 });
 
+function buildSequence(rows: number[], columns: number): FrameIndex[] {
+  const frames: FrameIndex[] = [];
+  for (const r of rows) {
+    for (let c = 0; c < columns; c++) frames.push({ col: c, row: r });
+  }
+  return frames;
+}
+
 interface TargetPose {
-  row: number;
-  count: number;
+  sequence: FrameIndex[];
   fps: number;
 }
 
@@ -38,17 +48,32 @@ function computeTarget(): TargetPose | null {
   if (!activeTheme || !controller) return null;
   const m = activeTheme.meta;
   const now = Date.now();
-  if (now < cryUntilMs) return { row: m.cryRow, count: 1, fps: m.fps };
-  if (hovering) return { row: m.hoverRow, count: m.hoverColumns, fps: m.fps };
-  if (controller.state === 'walk') return { row: m.walkRow, count: m.walkColumns, fps: m.fps };
-  if (sleeping) return { row: m.sleepRow, count: m.sleepColumns, fps: m.fps };
-  return { row: m.idleRow, count: m.idleColumns, fps: m.fps };
+  if (now < cryUntilMs) {
+    return { sequence: buildSequence([m.cryRow], m.cryColumns), fps: m.fps };
+  }
+  if (now < dotUntilMs) {
+    return { sequence: buildSequence([m.dotRow], m.dotColumns), fps: m.fps };
+  }
+  if (now < clickUntilMs) {
+    return { sequence: buildSequence([m.clickRow], m.clickColumns), fps: m.fps };
+  }
+  if (hovering) {
+    return { sequence: buildSequence(m.hoverRows, m.hoverColumns), fps: m.fps };
+  }
+  if (controller.state === 'walk') {
+    return { sequence: buildSequence(m.walkRows, m.walkColumns), fps: m.fps };
+  }
+  if (sleeping) {
+    return { sequence: buildSequence([m.sleepRow], m.sleepColumns), fps: m.fps };
+  }
+  // Idle: still single frame.
+  return { sequence: [{ col: 0, row: m.idleRow }], fps: m.fps };
 }
 
 function applyCurrentPose() {
-  const target = computeTarget();
-  if (!target) return;
-  sprite.setRow(target);
+  const t = computeTarget();
+  if (!t) return;
+  sprite.setSequence(t.sequence, t.fps);
 }
 
 function cancelSleepTimer() {
@@ -68,13 +93,37 @@ function scheduleSleep() {
   cancelSleepTimer();
   sleepTimer = setTimeout(() => {
     sleepTimer = null;
-    if (!controller) return;
-    if (controller.state !== 'idle') return;
-    if (Date.now() < cryUntilMs) return;
+    if (!controller || controller.state !== 'idle') return;
+    if (Date.now() < cryUntilMs || Date.now() < clickUntilMs || Date.now() < dotUntilMs) return;
     if (hovering) return;
     sleeping = true;
     applyCurrentPose();
   }, SLEEP_AFTER_IDLE_MS);
+}
+
+function triggerClick() {
+  if (!activeTheme) return;
+  const m = activeTheme.meta;
+  wakeUp();
+  clickUntilMs = Date.now() + m.clickDurationMs;
+  applyCurrentPose();
+  setTimeout(() => {
+    clickUntilMs = 0;
+    applyCurrentPose();
+    if (controller?.state === 'idle') scheduleSleep();
+  }, m.clickDurationMs);
+}
+
+function triggerDot() {
+  if (!activeTheme) return;
+  const m = activeTheme.meta;
+  wakeUp();
+  dotUntilMs = Date.now() + m.dotDurationMs;
+  applyCurrentPose();
+  setTimeout(() => {
+    dotUntilMs = 0;
+    applyCurrentPose();
+  }, m.dotDurationMs);
 }
 
 async function applyTheme(theme: ThemeAssets | null) {
@@ -86,7 +135,7 @@ async function applyTheme(theme: ThemeAssets | null) {
   }
   cancelSleepTimer();
   activeTheme = theme;
-  cryUntilMs = 0;
+  cryUntilMs = clickUntilMs = dotUntilMs = 0;
   hovering = false;
   sleeping = false;
 
@@ -129,7 +178,6 @@ async function applyTheme(theme: ThemeAssets | null) {
     if (s === 'walk') {
       wakeUp();
     } else {
-      // Entering idle: start the timer that eventually puts the pet to sleep.
       scheduleSleep();
     }
     applyCurrentPose();
@@ -148,10 +196,11 @@ async function applyTheme(theme: ThemeAssets | null) {
 window.petAPI.getActiveTheme().then(applyTheme);
 window.petAPI.onActiveThemeChanged(applyTheme);
 
-window.petAPI.onKeyTyped(() => {
+window.petAPI.onKeyTyped((evt) => {
   if (Date.now() < cryUntilMs) return;
   wakeUp();
   controller?.notifyKey();
+  if (evt.isDot) triggerDot();
 });
 
 spriteEl.addEventListener('contextmenu', (e) => {
@@ -161,6 +210,11 @@ spriteEl.addEventListener('contextmenu', (e) => {
 
 spriteEl.addEventListener('dblclick', (e) => {
   e.preventDefault();
+  // Cancel any pending single-click reaction so it doesn't fire after cry.
+  if (singleClickTimer) {
+    clearTimeout(singleClickTimer);
+    singleClickTimer = null;
+  }
   if (!activeTheme) return;
   const m = activeTheme.meta;
   wakeUp();
@@ -227,6 +281,16 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseup', () => {
   if (!drag) return;
+  const wasDrag = drag.active;
   spriteEl.classList.remove('dragging');
   drag = null;
+  // Single left-click reaction: fire only when the user neither dragged nor
+  // produced a dblclick within the short delay window.
+  if (!wasDrag) {
+    if (singleClickTimer) clearTimeout(singleClickTimer);
+    singleClickTimer = setTimeout(() => {
+      singleClickTimer = null;
+      triggerClick();
+    }, SINGLE_CLICK_DELAY_MS);
+  }
 });

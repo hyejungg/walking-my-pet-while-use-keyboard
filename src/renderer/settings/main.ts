@@ -70,18 +70,18 @@ function renderSize() {
 interface Reaction {
   title: string;
   trigger: string;
-  rowKey: keyof Pick<
-    ThemeMeta,
-    'idleRow' | 'walkRow' | 'cryRow' | 'hoverRow' | 'sleepRow'
-  >;
+  /** Returns the row to use as the static preview thumbnail. */
+  previewRow(m: ThemeMeta): number;
 }
 
 const REACTIONS: Reaction[] = [
-  { title: '기본 자세', trigger: '아무 입력도 없을 때', rowKey: 'idleRow' },
-  { title: '걷기', trigger: '타자를 치면', rowKey: 'walkRow' },
-  { title: '우는 표정', trigger: '펫을 더블클릭하면', rowKey: 'cryRow' },
-  { title: '쳐다보기', trigger: '마우스를 올리면', rowKey: 'hoverRow' },
-  { title: '잠자기', trigger: '1분 동안 가만히 두면', rowKey: 'sleepRow' }
+  { title: '기본 자세', trigger: '아무 입력도 없을 때', previewRow: (m) => m.idleRow },
+  { title: '걷기', trigger: '타자를 치면', previewRow: (m) => m.walkRows[0] },
+  { title: '쳐다보기', trigger: '마우스를 올리면', previewRow: (m) => m.hoverRows[0] },
+  { title: '우는 표정', trigger: '펫을 더블클릭하면', previewRow: (m) => m.cryRow },
+  { title: '클릭 반응', trigger: '펫을 한 번 클릭하면', previewRow: (m) => m.clickRow },
+  { title: 'ᆞ(마침표) 반응', trigger: '타이핑 중 마침표(.)를 치면', previewRow: (m) => m.dotRow },
+  { title: '잠자기', trigger: '1분 동안 가만히 두면', previewRow: (m) => m.sleepRow }
 ];
 
 function renderReactions() {
@@ -92,7 +92,7 @@ function renderReactions() {
   for (const r of REACTIONS) {
     const card = document.createElement('div');
     card.className = 'reaction-card';
-    card.appendChild(spritePreview(t, REACTION_PREVIEW_W, m[r.rowKey]));
+    card.appendChild(spritePreview(t, REACTION_PREVIEW_W, r.previewRow(m)));
 
     const body = document.createElement('div');
     body.className = 'reaction-body';
@@ -110,7 +110,6 @@ function renderReactions() {
     card.appendChild(body);
     reactionListEl.appendChild(card);
   }
-
 }
 
 async function init() {

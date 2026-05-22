@@ -16,15 +16,21 @@ function writeMeta(dir: string, patch: Partial<Record<string, unknown>> = {}) {
     rows: 9,
     idleRow: 0,
     idleColumns: 1,
-    walkRow: 2,
-    walkColumns: 6,
+    walkRows: [1, 2],
+    walkColumns: 8,
     cryRow: 5,
-    cryColumns: 1,
+    cryColumns: 8,
     cryDurationMs: 1500,
-    hoverRow: 1,
-    hoverColumns: 1,
-    sleepRow: 7,
-    sleepColumns: 1,
+    hoverRows: [3, 4],
+    hoverColumns: 8,
+    sleepRow: 6,
+    sleepColumns: 6,
+    clickRow: 7,
+    clickColumns: 8,
+    clickDurationMs: 1000,
+    dotRow: 8,
+    dotColumns: 8,
+    dotDurationMs: 1000,
     fps: 8,
     stepPx: 4,
     renderWidth: 128,
@@ -67,7 +73,10 @@ describe('theme-loader', () => {
     const t = themes[0];
     expect(t.meta.id).toBe('sample');
     expect(t.meta.frameWidth).toBe(256);
-    expect(t.meta.walkColumns).toBe(6);
+    expect(t.meta.walkColumns).toBe(8);
+    expect(t.meta.walkRows).toEqual([1, 2]);
+    expect(t.meta.clickRow).toBe(7);
+    expect(t.meta.dotRow).toBe(8);
     expect(t.spritesheetUrl.startsWith('file://')).toBe(true);
     expect(t.spritesheetUrl.endsWith('/sample/spritesheet.webp')).toBe(true);
   });

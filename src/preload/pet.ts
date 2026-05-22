@@ -15,9 +15,11 @@ const THEME_SET_ACTIVE = 'pet:theme-set-active';
 const OPEN_SETTINGS = 'pet:open-settings';
 const PET_CONTEXT_MENU = 'pet:context-menu';
 
+interface KeyTypedPayload { keycode: number; isDot: boolean; }
+
 const api = {
-  onKeyTyped(handler: () => void): () => void {
-    const listener = () => handler();
+  onKeyTyped(handler: (e: KeyTypedPayload) => void): () => void {
+    const listener = (_e: unknown, payload: KeyTypedPayload) => handler(payload);
     ipcRenderer.on(KEY_TYPED, listener);
     return () => ipcRenderer.off(KEY_TYPED, listener);
   },

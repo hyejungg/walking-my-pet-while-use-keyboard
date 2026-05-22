@@ -49,9 +49,9 @@ app.whenReady().then(() => {
     store.set('petPosition', { x, y });
   });
 
-  keyHook.on('key', () => {
+  keyHook.on('key', (evt) => {
     if (petWindow && !petWindow.isDestroyed()) {
-      petWindow.webContents.send(IPC.KEY_TYPED);
+      petWindow.webContents.send(IPC.KEY_TYPED, evt);
     }
   });
   keyHook.start();

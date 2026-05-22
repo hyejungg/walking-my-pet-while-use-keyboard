@@ -5,12 +5,25 @@ import type { ThemeAssets, ThemeMeta } from '@shared/theme-types';
 
 const NUMBER_FIELDS: Array<keyof ThemeMeta> = [
   'frameWidth', 'frameHeight', 'columns', 'rows',
-  'idleRow', 'idleColumns', 'walkRow', 'walkColumns',
+  'idleRow', 'idleColumns',
+  'walkColumns',
   'cryRow', 'cryColumns', 'cryDurationMs',
-  'hoverRow', 'hoverColumns',
+  'hoverColumns',
   'sleepRow', 'sleepColumns',
+  'clickRow', 'clickColumns', 'clickDurationMs',
+  'dotRow', 'dotColumns', 'dotDurationMs',
   'fps', 'stepPx', 'renderWidth', 'renderHeight'
 ];
+
+const NUMBER_ARRAY_FIELDS: Array<keyof ThemeMeta> = ['walkRows', 'hoverRows'];
+
+function isFiniteNumber(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+
+function isNumberArray(v: unknown): v is number[] {
+  return Array.isArray(v) && v.length > 0 && v.every(isFiniteNumber);
+}
 
 function parseMeta(file: string): ThemeMeta | null {
   try {
@@ -22,7 +35,10 @@ function parseMeta(file: string): ThemeMeta | null {
       typeof parsed.spritesheetPath !== 'string'
     ) return null;
     for (const f of NUMBER_FIELDS) {
-      if (typeof parsed[f] !== 'number' || !Number.isFinite(parsed[f])) return null;
+      if (!isFiniteNumber(parsed[f])) return null;
+    }
+    for (const f of NUMBER_ARRAY_FIELDS) {
+      if (!isNumberArray(parsed[f])) return null;
     }
     return parsed as ThemeMeta;
   } catch {
