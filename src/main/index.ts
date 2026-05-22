@@ -1,4 +1,6 @@
 import { app, BrowserWindow } from 'electron';
+import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { createPetWindow } from './pet-window.js';
 import { createKeyHook } from './key-hook.js';
 import { createSettingsStore } from './store.js';
@@ -49,7 +51,19 @@ app.whenReady().then(() => {
     store.set('petPosition', { x, y });
   });
 
+  // Debug log so the user can read back uiohook's keycode for any key —
+  // necessary to tune the per-theme callKeycodes mapping. The file is
+  // truncated at startup and appended to per keydown.
+  const keyLogPath = join(app.getPath('logs'), 'keycodes.log');
+  try {
+    mkdirSync(dirname(keyLogPath), { recursive: true });
+    writeFileSync(keyLogPath, `# keycodes log — opened ${new Date().toISOString()}\n`);
+  } catch { /* noop */ }
+
   keyHook.on('key', (evt) => {
+    try {
+      appendFileSync(keyLogPath, `${evt.keycode}${evt.isQuestion ? ' (?)' : ''}\n`);
+    } catch { /* noop */ }
     if (petWindow && !petWindow.isDestroyed()) {
       petWindow.webContents.send(IPC.KEY_TYPED, evt);
     }
