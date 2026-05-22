@@ -91,8 +91,8 @@ const REACTIONS: Reaction[] = [
   { title: '클릭 반응', trigger: '펫을 한 번 클릭하면',
     preview: (m) => ({ row: m.clickRow, col: 2 }) },
 
-  { title: '마침표(.) 반응', trigger: '타이핑 중 마침표(.)를 치면',
-    preview: (m) => ({ row: m.dotRow, col: 2 }) },
+  { title: '물음표(?) 반응', trigger: '타이핑 중 ?(또는 /)를 치면',
+    preview: (m) => ({ row: m.questionRow, col: 2 }) },
 
   // sleep: later cell so the eyes-closed frame is more likely
   { title: '잠자기', trigger: '1분 동안 가만히 두면',

@@ -11,7 +11,7 @@ const NUMBER_FIELDS: Array<keyof ThemeMeta> = [
   'hoverColumns',
   'sleepRow', 'sleepColumns',
   'clickRow', 'clickColumns', 'clickDurationMs',
-  'dotRow', 'dotColumns', 'dotDurationMs',
+  'questionRow', 'questionColumns', 'questionDurationMs',
   'fps', 'stepPx', 'renderWidth', 'renderHeight'
 ];
 

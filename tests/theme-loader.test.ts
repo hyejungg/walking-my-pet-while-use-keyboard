@@ -28,9 +28,9 @@ function writeMeta(dir: string, patch: Partial<Record<string, unknown>> = {}) {
     clickRow: 7,
     clickColumns: 8,
     clickDurationMs: 1000,
-    dotRow: 8,
-    dotColumns: 8,
-    dotDurationMs: 1000,
+    questionRow: 8,
+    questionColumns: 8,
+    questionDurationMs: 1000,
     fps: 8,
     stepPx: 4,
     renderWidth: 128,
@@ -76,7 +76,7 @@ describe('theme-loader', () => {
     expect(t.meta.walkColumns).toBe(8);
     expect(t.meta.walkRows).toEqual([1, 2]);
     expect(t.meta.clickRow).toBe(7);
-    expect(t.meta.dotRow).toBe(8);
+    expect(t.meta.questionRow).toBe(8);
     expect(t.spritesheetUrl.startsWith('file://')).toBe(true);
     expect(t.spritesheetUrl.endsWith('/sample/spritesheet.webp')).toBe(true);
   });

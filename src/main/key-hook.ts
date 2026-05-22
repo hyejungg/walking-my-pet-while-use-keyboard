@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 
 export interface KeyEvent {
   keycode: number;
-  isDot: boolean;
+  isQuestion: boolean;
 }
 
 export interface KeyHook {
@@ -12,17 +12,17 @@ export interface KeyHook {
   on(event: 'key', listener: (e: KeyEvent) => void): void;
 }
 
-// uiohook-napi exports a UiohookKey enum; Period is the '.' key on every
-// platform it supports. Fall back to the documented constant if the enum
-// import ever drifts.
-const PERIOD_KEYCODE = (UiohookKey as Record<string, number>).Period ?? 52;
+// '?' is Shift + '/'. uiohook only reports the raw keycode (Slash) — Shift
+// state isn't tracked here, so pressing either '/' or '?' will trigger
+// the question reaction.
+const SLASH_KEYCODE = (UiohookKey as Record<string, number>).Slash ?? 53;
 
 export function createKeyHook(): KeyHook {
   const emitter = new EventEmitter();
   let started = false;
 
   const onKeydown = (e: { keycode: number }) => {
-    emitter.emit('key', { keycode: e.keycode, isDot: e.keycode === PERIOD_KEYCODE });
+    emitter.emit('key', { keycode: e.keycode, isQuestion: e.keycode === SLASH_KEYCODE });
   };
 
   return {

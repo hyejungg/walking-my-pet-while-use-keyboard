@@ -29,9 +29,9 @@ export interface ThemeMeta {
   clickColumns: number;
   clickDurationMs: number;
 
-  dotRow: number;
-  dotColumns: number;
-  dotDurationMs: number;
+  questionRow: number;
+  questionColumns: number;
+  questionDurationMs: number;
 
   fps: number;
   stepPx: number;

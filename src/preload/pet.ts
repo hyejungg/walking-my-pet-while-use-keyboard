@@ -15,7 +15,7 @@ const THEME_SET_ACTIVE = 'pet:theme-set-active';
 const OPEN_SETTINGS = 'pet:open-settings';
 const PET_CONTEXT_MENU = 'pet:context-menu';
 
-interface KeyTypedPayload { keycode: number; isDot: boolean; }
+interface KeyTypedPayload { keycode: number; isQuestion: boolean; }
 
 const api = {
   onKeyTyped(handler: (e: KeyTypedPayload) => void): () => void {

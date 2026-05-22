@@ -23,7 +23,7 @@ const WALK_FPS_BOOST = 1.5;
 
 let cryUntilMs = 0;
 let clickUntilMs = 0;
-let dotUntilMs = 0;
+let questionUntilMs = 0;
 let hovering = false;
 let sleeping = false;
 let sleepTimer: ReturnType<typeof setTimeout> | null = null;
@@ -54,8 +54,8 @@ function computeTarget(): TargetPose | null {
   if (now < cryUntilMs) {
     return { sequence: buildSequence([m.cryRow], m.cryColumns), fps: m.fps };
   }
-  if (now < dotUntilMs) {
-    return { sequence: buildSequence([m.dotRow], m.dotColumns), fps: m.fps };
+  if (now < questionUntilMs) {
+    return { sequence: buildSequence([m.questionRow], m.questionColumns), fps: m.fps };
   }
   if (now < clickUntilMs) {
     return { sequence: buildSequence([m.clickRow], m.clickColumns), fps: m.fps };
@@ -97,7 +97,7 @@ function scheduleSleep() {
   sleepTimer = setTimeout(() => {
     sleepTimer = null;
     if (!controller || controller.state !== 'idle') return;
-    if (Date.now() < cryUntilMs || Date.now() < clickUntilMs || Date.now() < dotUntilMs) return;
+    if (Date.now() < cryUntilMs || Date.now() < clickUntilMs || Date.now() < questionUntilMs) return;
     if (hovering) return;
     sleeping = true;
     applyCurrentPose();
@@ -117,16 +117,16 @@ function triggerClick() {
   }, m.clickDurationMs);
 }
 
-function triggerDot() {
+function triggerQuestion() {
   if (!activeTheme) return;
   const m = activeTheme.meta;
   wakeUp();
-  dotUntilMs = Date.now() + m.dotDurationMs;
+  questionUntilMs = Date.now() + m.questionDurationMs;
   applyCurrentPose();
   setTimeout(() => {
-    dotUntilMs = 0;
+    questionUntilMs = 0;
     applyCurrentPose();
-  }, m.dotDurationMs);
+  }, m.questionDurationMs);
 }
 
 async function applyTheme(theme: ThemeAssets | null) {
@@ -138,7 +138,7 @@ async function applyTheme(theme: ThemeAssets | null) {
   }
   cancelSleepTimer();
   activeTheme = theme;
-  cryUntilMs = clickUntilMs = dotUntilMs = 0;
+  cryUntilMs = clickUntilMs = questionUntilMs = 0;
   hovering = false;
   sleeping = false;
 
@@ -203,7 +203,7 @@ window.petAPI.onKeyTyped((evt) => {
   if (Date.now() < cryUntilMs) return;
   wakeUp();
   controller?.notifyKey();
-  if (evt.isDot) triggerDot();
+  if (evt.isQuestion) triggerQuestion();
 });
 
 spriteEl.addEventListener('contextmenu', (e) => {
