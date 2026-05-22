@@ -17,6 +17,9 @@ const SLEEP_AFTER_IDLE_MS = 60_000;
 // How long we wait for a possible dblclick before treating a mouseup as a
 // single click. macOS double-click threshold is ~300ms.
 const SINGLE_CLICK_DELAY_MS = 280;
+// Walk plays slightly faster than the base reactions so the marching looks
+// lively even at 1× typing speed.
+const WALK_FPS_BOOST = 1.5;
 
 let cryUntilMs = 0;
 let clickUntilMs = 0;
@@ -61,7 +64,7 @@ function computeTarget(): TargetPose | null {
     return { sequence: buildSequence(m.hoverRows, m.hoverColumns), fps: m.fps };
   }
   if (controller.state === 'walk') {
-    return { sequence: buildSequence(m.walkRows, m.walkColumns), fps: m.fps };
+    return { sequence: buildSequence(m.walkRows, m.walkColumns), fps: m.fps * WALK_FPS_BOOST };
   }
   if (sleeping) {
     return { sequence: buildSequence([m.sleepRow], m.sleepColumns), fps: m.fps };
@@ -185,7 +188,7 @@ async function applyTheme(theme: ThemeAssets | null) {
 
   controller.onStep(({ speedMultiplier }) => {
     if (!activeTheme) return;
-    sprite.setFps(activeTheme.meta.fps * speedMultiplier);
+    sprite.setFps(activeTheme.meta.fps * WALK_FPS_BOOST * speedMultiplier);
   });
 
   applyCurrentPose();
