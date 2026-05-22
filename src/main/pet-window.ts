@@ -26,7 +26,6 @@ export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
     y: Math.round(y),
     frame: false,
     transparent: true,
-    backgroundColor: '#00000000',
     resizable: false,
     movable: true,
     minimizable: false,
@@ -35,8 +34,7 @@ export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
     skipTaskbar: true,
     alwaysOnTop: true,
     hasShadow: false,
-    show: true,
-    roundedCorners: false,
+    show: false,
     webPreferences: {
       preload: join(__dirname, '../preload/pet.js'),
       contextIsolation: true,
@@ -45,11 +43,9 @@ export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
     }
   });
 
-  // Some Electron builds reset background to opaque after construction;
-  // re-apply explicitly.
-  win.setBackgroundColor('#00000000');
   win.setAlwaysOnTop(true, ALWAYS_ON_TOP_LEVEL);
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.once('ready-to-show', () => win.showInactive());
 
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/pet/index.html`);

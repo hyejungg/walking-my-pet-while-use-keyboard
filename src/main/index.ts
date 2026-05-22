@@ -11,13 +11,6 @@ import { createTray } from './tray.js';
 import { openSettingsWindow } from './settings-window.js';
 import { IPC } from '@shared/ipc-channels';
 
-// macOS Sonoma's accelerated compositor was painting a solid white
-// backdrop behind transparent frameless windows. Force software compositing
-// and enable transparent visuals — both must be applied before whenReady().
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('enable-transparent-visuals');
-app.commandLine.appendSwitch('disable-gpu-compositing');
-
 let petWindow: BrowserWindow | null = null;
 const keyHook = createKeyHook();
 const store = createSettingsStore();
