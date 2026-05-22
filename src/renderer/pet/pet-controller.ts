@@ -16,8 +16,12 @@ export interface StepEvent {
   speedMultiplier: number;
 }
 
-const KPS_FLOOR = 1;
-const KPS_CEIL = 10;
+// Typing-rate band used to interpolate the walk-speed multiplier. Anything
+// at or below KPS_FLOOR plays at min speed; at or above KPS_CEIL plays at
+// max. The band is intentionally wide so a normal typing session (3–5 KPS)
+// sits comfortably in the slow half.
+const KPS_FLOOR = 3;
+const KPS_CEIL = 12;
 
 export class PetController {
   state: PetState = 'idle';

@@ -63,8 +63,9 @@ describe('PetController', () => {
     const onStep = vi.fn();
     const c = new PetController(defaults);
     c.onStep(onStep);
-    // 20 keys within ~1s -> KPS ~= 20/2 = 10 over 2s window -> multiplier ≈ 3.0
-    for (let i = 0; i < 20; i++) {
+    // 30 keys within ~1.5s -> KPS ~= 30/2 = 15 over 2s window, clamps at
+    // KPS_CEIL (12) -> multiplier ≈ 3.0
+    for (let i = 0; i < 30; i++) {
       c.notifyKey();
       vi.advanceTimersByTime(50);
     }
