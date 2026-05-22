@@ -96,7 +96,11 @@ const REACTIONS: Reaction[] = [
 
   // sleep: later cell so the eyes-closed frame is more likely
   { title: '잠자기', trigger: '1분 동안 가만히 두면',
-    preview: (m) => ({ row: m.sleepRow, col: 4 }) }
+    preview: (m) => ({ row: m.sleepRow, col: 4 }) },
+
+  // call: dynamically named per theme — see init() below for the trigger text
+  { title: '이름 부르기', trigger: '펫 이름을 타이핑하면',
+    preview: (m) => ({ row: m.callRow, col: 0 }) }
 ];
 
 function renderReactions() {

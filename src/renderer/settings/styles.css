@@ -1,4 +1,5 @@
-body { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif; margin: 0; padding: 24px; background: #fafafa; color: #222; }
+html, body { background: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif; margin: 0; padding: 24px; color: #222; }
 .title { margin-bottom: 20px; }
 h1 { font-size: 20px; margin: 0; }
 .subtitle { margin: 4px 0 0; color: #666; font-size: 12px; }

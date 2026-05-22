@@ -24,10 +24,18 @@ const WALK_FPS_BOOST = 1.5;
 let cryUntilMs = 0;
 let clickUntilMs = 0;
 let questionUntilMs = 0;
+let callUntilMs = 0;
 let hovering = false;
 let sleeping = false;
 let sleepTimer: ReturnType<typeof setTimeout> | null = null;
 let singleClickTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Modifier-style keycodes we ignore when matching the name sequence.
+// uiohook: Shift = 42 (left) / 54 (right), Ctrl, Alt, Meta variants similar.
+const MODIFIER_KEYCODES = new Set([29, 42, 54, 56, 3675, 3640, 3613, 3676]);
+// Rolling buffer of recent raw keycodes; trimmed to the longest theme name.
+let keyBuffer: number[] = [];
+const KEY_BUFFER_MAX = 16;
 
 const sprite = new PetSprite((frame: FrameIndex) => {
   if (!activeTheme) return;
@@ -53,6 +61,9 @@ function computeTarget(): TargetPose | null {
   const now = Date.now();
   if (now < cryUntilMs) {
     return { sequence: buildSequence([m.cryRow], m.cryColumns), fps: m.fps };
+  }
+  if (now < callUntilMs) {
+    return { sequence: buildSequence([m.callRow], m.callColumns), fps: m.fps };
   }
   if (now < questionUntilMs) {
     return { sequence: buildSequence([m.questionRow], m.questionColumns), fps: m.fps };
@@ -97,7 +108,8 @@ function scheduleSleep() {
   sleepTimer = setTimeout(() => {
     sleepTimer = null;
     if (!controller || controller.state !== 'idle') return;
-    if (Date.now() < cryUntilMs || Date.now() < clickUntilMs || Date.now() < questionUntilMs) return;
+    if (Date.now() < cryUntilMs || Date.now() < clickUntilMs ||
+        Date.now() < questionUntilMs || Date.now() < callUntilMs) return;
     if (hovering) return;
     sleeping = true;
     applyCurrentPose();
@@ -129,6 +141,27 @@ function triggerQuestion() {
   }, m.questionDurationMs);
 }
 
+function triggerCall() {
+  if (!activeTheme) return;
+  const m = activeTheme.meta;
+  wakeUp();
+  callUntilMs = Date.now() + m.callDurationMs;
+  applyCurrentPose();
+  setTimeout(() => {
+    callUntilMs = 0;
+    applyCurrentPose();
+  }, m.callDurationMs);
+}
+
+function tailMatches(buffer: number[], target: number[]): boolean {
+  if (target.length > buffer.length) return false;
+  const start = buffer.length - target.length;
+  for (let i = 0; i < target.length; i++) {
+    if (buffer[start + i] !== target[i]) return false;
+  }
+  return true;
+}
+
 async function applyTheme(theme: ThemeAssets | null) {
   const gen = ++applyGen;
 
@@ -138,7 +171,8 @@ async function applyTheme(theme: ThemeAssets | null) {
   }
   cancelSleepTimer();
   activeTheme = theme;
-  cryUntilMs = clickUntilMs = questionUntilMs = 0;
+  cryUntilMs = clickUntilMs = questionUntilMs = callUntilMs = 0;
+  keyBuffer = [];
   hovering = false;
   sleeping = false;
 
@@ -203,6 +237,21 @@ window.petAPI.onKeyTyped((evt) => {
   if (Date.now() < cryUntilMs) return;
   wakeUp();
   controller?.notifyKey();
+
+  // Maintain a small ring buffer of recent (non-modifier) keycodes and fire
+  // the call reaction whenever its tail matches the active theme's name.
+  if (!MODIFIER_KEYCODES.has(evt.keycode)) {
+    keyBuffer.push(evt.keycode);
+    if (keyBuffer.length > KEY_BUFFER_MAX) {
+      keyBuffer = keyBuffer.slice(keyBuffer.length - KEY_BUFFER_MAX);
+    }
+    if (activeTheme && tailMatches(keyBuffer, activeTheme.meta.callKeycodes)) {
+      keyBuffer = [];
+      triggerCall();
+      return;
+    }
+  }
+
   if (evt.isQuestion) triggerQuestion();
 });
 

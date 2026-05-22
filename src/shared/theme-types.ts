@@ -33,6 +33,12 @@ export interface ThemeMeta {
   questionColumns: number;
   questionDurationMs: number;
 
+  /** Raw uiohook keycodes for the pet's name (Korean dubeolsik mapping). */
+  callKeycodes: number[];
+  callRow: number;
+  callColumns: number;
+  callDurationMs: number;
+
   fps: number;
   stepPx: number;
   renderWidth: number;

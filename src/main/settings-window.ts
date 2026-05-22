@@ -17,6 +17,9 @@ export function openSettingsWindow(): BrowserWindow {
     height: 480,
     resizable: false,
     title: 'Walking Pet — Settings',
+    transparent: true,
+    backgroundColor: '#00000000',
+    vibrancy: 'sidebar',
     webPreferences: {
       preload: join(__dirname, '../preload/settings.js'),
       contextIsolation: true,

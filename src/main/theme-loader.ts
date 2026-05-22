@@ -12,10 +12,11 @@ const NUMBER_FIELDS: Array<keyof ThemeMeta> = [
   'sleepRow', 'sleepColumns',
   'clickRow', 'clickColumns', 'clickDurationMs',
   'questionRow', 'questionColumns', 'questionDurationMs',
+  'callRow', 'callColumns', 'callDurationMs',
   'fps', 'stepPx', 'renderWidth', 'renderHeight'
 ];
 
-const NUMBER_ARRAY_FIELDS: Array<keyof ThemeMeta> = ['walkRows', 'hoverRows'];
+const NUMBER_ARRAY_FIELDS: Array<keyof ThemeMeta> = ['walkRows', 'hoverRows', 'callKeycodes'];
 
 function isFiniteNumber(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
