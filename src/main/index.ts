@@ -11,6 +11,11 @@ import { createTray } from './tray.js';
 import { openSettingsWindow } from './settings-window.js';
 import { IPC } from '@shared/ipc-channels';
 
+// GPU-accelerated compositing on macOS sometimes paints a solid white
+// backdrop behind transparent frameless windows. Disable it so the pet
+// window stays truly transparent. Must run before app.whenReady().
+app.disableHardwareAcceleration();
+
 let petWindow: BrowserWindow | null = null;
 const keyHook = createKeyHook();
 const store = createSettingsStore();

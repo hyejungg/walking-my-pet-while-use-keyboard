@@ -37,10 +37,8 @@ export function createPetWindow(opts: PetWindowOptions): BrowserWindow {
     hasShadow: false,
     show: true,
     // Sonoma sometimes paints a rounded white backdrop behind transparent
-    // frameless windows; opt out of rounded corners and the standard
-    // window type to keep the surface fully clear.
+    // frameless windows; opt out of rounded corners.
     roundedCorners: false,
-    type: 'panel',
     webPreferences: {
       preload: join(__dirname, '../preload/pet.js'),
       contextIsolation: true,
