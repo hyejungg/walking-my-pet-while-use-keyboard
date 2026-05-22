@@ -81,7 +81,7 @@ const REACTIONS: Reaction[] = [
   { title: '걷기', trigger: '타자를 치면', rowKey: 'walkRow' },
   { title: '우는 표정', trigger: '펫을 더블클릭하면', rowKey: 'cryRow' },
   { title: '쳐다보기', trigger: '마우스를 올리면', rowKey: 'hoverRow' },
-  { title: '잠자기', trigger: '밤(22시–6시)에', rowKey: 'sleepRow' }
+  { title: '잠자기', trigger: '1분 동안 가만히 두면', rowKey: 'sleepRow' }
 ];
 
 function renderReactions() {
@@ -111,30 +111,6 @@ function renderReactions() {
     reactionListEl.appendChild(card);
   }
 
-  // Random pose card — preview the first row that isn't already reserved.
-  const reservedSet = new Set([m.idleRow, m.walkRow, m.cryRow, m.hoverRow, m.sleepRow]);
-  let variantRow: number | null = null;
-  for (let r = 0; r < m.rows; r++) {
-    if (!reservedSet.has(r)) { variantRow = r; break; }
-  }
-  if (variantRow !== null) {
-    const card = document.createElement('div');
-    card.className = 'reaction-card';
-    card.appendChild(spritePreview(t, REACTION_PREVIEW_W, variantRow));
-
-    const body = document.createElement('div');
-    body.className = 'reaction-body';
-    const title = document.createElement('div');
-    title.className = 'reaction-title';
-    title.textContent = '다양한 자세';
-    body.appendChild(title);
-    const trig = document.createElement('div');
-    trig.className = 'reaction-trigger';
-    trig.textContent = '가만히 두면 8–18초마다 다른 자세를 보여줘요';
-    body.appendChild(trig);
-    card.appendChild(body);
-    reactionListEl.appendChild(card);
-  }
 }
 
 async function init() {

@@ -17,7 +17,7 @@
   "hoverRow": 4,
   "hoverColumns": 1,
   "sleepRow": 7,
-  "sleepColumns": 1,
+  "sleepColumns": 6,
   "fps": 8,
   "stepPx": 6,
   "renderWidth": 128,

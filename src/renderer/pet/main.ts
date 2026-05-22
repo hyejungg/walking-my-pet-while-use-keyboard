@@ -15,32 +15,18 @@ let cellH = 0;
 const VISIBLE_FRACTION = 1.0;
 const VERTICAL_PADDING_RATIO = 0;
 
-let cryUntilMs = 0;
-let variantUntilMs = 0;
-let hovering = false;
+// Sleep after this much continuous idle time.
+const SLEEP_AFTER_IDLE_MS = 60_000;
 
-// Idle-time variants: every 8–18 seconds an "unused" row plays for ~2.5s.
-const VARIANT_MIN_WAIT_MS = 8_000;
-const VARIANT_MAX_WAIT_MS = 18_000;
-const VARIANT_DURATION_MS = 2_500;
-let variantTimer: ReturnType<typeof setTimeout> | null = null;
-let variantTimeout: ReturnType<typeof setTimeout> | null = null;
+let cryUntilMs = 0;
+let hovering = false;
+let sleeping = false;
+let sleepTimer: ReturnType<typeof setTimeout> | null = null;
 
 const sprite = new PetSprite(({ col, row }) => {
   if (!activeTheme) return;
   spriteEl.style.backgroundPosition = `-${col * cellW}px -${row * cellH}px`;
 });
-
-function isNightHour(): boolean {
-  const h = new Date().getHours();
-  return h >= 22 || h < 6;
-}
-
-function reservedRows(): Set<number> {
-  if (!activeTheme) return new Set();
-  const m = activeTheme.meta;
-  return new Set([m.idleRow, m.walkRow, m.cryRow, m.hoverRow, m.sleepRow]);
-}
 
 interface TargetPose {
   row: number;
@@ -55,8 +41,7 @@ function computeTarget(): TargetPose | null {
   if (now < cryUntilMs) return { row: m.cryRow, count: 1, fps: m.fps };
   if (hovering) return { row: m.hoverRow, count: m.hoverColumns, fps: m.fps };
   if (controller.state === 'walk') return { row: m.walkRow, count: m.walkColumns, fps: m.fps };
-  if (now < variantUntilMs) return null; // variant timeout already set the row
-  if (isNightHour()) return { row: m.sleepRow, count: m.sleepColumns, fps: m.fps };
+  if (sleeping) return { row: m.sleepRow, count: m.sleepColumns, fps: m.fps };
   return { row: m.idleRow, count: m.idleColumns, fps: m.fps };
 }
 
@@ -66,45 +51,30 @@ function applyCurrentPose() {
   sprite.setRow(target);
 }
 
-function cancelVariant() {
-  if (variantTimer) clearTimeout(variantTimer);
-  if (variantTimeout) clearTimeout(variantTimeout);
-  variantTimer = variantTimeout = null;
-  variantUntilMs = 0;
+function cancelSleepTimer() {
+  if (sleepTimer) clearTimeout(sleepTimer);
+  sleepTimer = null;
 }
 
-function scheduleVariant() {
-  if (variantTimer) clearTimeout(variantTimer);
-  const wait = VARIANT_MIN_WAIT_MS + Math.random() * (VARIANT_MAX_WAIT_MS - VARIANT_MIN_WAIT_MS);
-  variantTimer = setTimeout(triggerVariant, wait);
-}
-
-function triggerVariant() {
-  variantTimer = null;
-  if (!activeTheme || !controller) return;
-  if (controller.state !== 'idle' || Date.now() < cryUntilMs || hovering) {
-    scheduleVariant();
-    return;
-  }
-  const m = activeTheme.meta;
-  const reserved = reservedRows();
-  const rows: number[] = [];
-  for (let r = 0; r < m.rows; r++) if (!reserved.has(r)) rows.push(r);
-  if (rows.length === 0) {
-    scheduleVariant();
-    return;
-  }
-  const row = rows[Math.floor(Math.random() * rows.length)];
-  variantUntilMs = Date.now() + VARIANT_DURATION_MS;
-  // Variant is a single still frame so the pet "tries on" a pose rather
-  // than animating through it.
-  sprite.setRow({ row, count: 1, fps: m.fps });
-  variantTimeout = setTimeout(() => {
-    variantTimeout = null;
-    variantUntilMs = 0;
+function wakeUp() {
+  cancelSleepTimer();
+  if (sleeping) {
+    sleeping = false;
     applyCurrentPose();
-    scheduleVariant();
-  }, VARIANT_DURATION_MS);
+  }
+}
+
+function scheduleSleep() {
+  cancelSleepTimer();
+  sleepTimer = setTimeout(() => {
+    sleepTimer = null;
+    if (!controller) return;
+    if (controller.state !== 'idle') return;
+    if (Date.now() < cryUntilMs) return;
+    if (hovering) return;
+    sleeping = true;
+    applyCurrentPose();
+  }, SLEEP_AFTER_IDLE_MS);
 }
 
 async function applyTheme(theme: ThemeAssets | null) {
@@ -114,10 +84,11 @@ async function applyTheme(theme: ThemeAssets | null) {
     controller.dispose();
     controller = null;
   }
-  cancelVariant();
+  cancelSleepTimer();
   activeTheme = theme;
   cryUntilMs = 0;
   hovering = false;
+  sleeping = false;
 
   if (!theme) {
     spriteEl.style.background = 'rgba(255,200,200,0.6)';
@@ -156,9 +127,10 @@ async function applyTheme(theme: ThemeAssets | null) {
 
   controller.onStateChange((s) => {
     if (s === 'walk') {
-      cancelVariant();
+      wakeUp();
     } else {
-      scheduleVariant();
+      // Entering idle: start the timer that eventually puts the pet to sleep.
+      scheduleSleep();
     }
     applyCurrentPose();
   });
@@ -170,7 +142,7 @@ async function applyTheme(theme: ThemeAssets | null) {
 
   applyCurrentPose();
   sprite.start();
-  scheduleVariant();
+  scheduleSleep();
 }
 
 window.petAPI.getActiveTheme().then(applyTheme);
@@ -178,6 +150,7 @@ window.petAPI.onActiveThemeChanged(applyTheme);
 
 window.petAPI.onKeyTyped(() => {
   if (Date.now() < cryUntilMs) return;
+  wakeUp();
   controller?.notifyKey();
 });
 
@@ -190,20 +163,20 @@ spriteEl.addEventListener('dblclick', (e) => {
   e.preventDefault();
   if (!activeTheme) return;
   const m = activeTheme.meta;
-  cancelVariant();
+  wakeUp();
   cryUntilMs = Date.now() + m.cryDurationMs;
   applyCurrentPose();
   setTimeout(() => {
     cryUntilMs = 0;
     applyCurrentPose();
-    if (controller?.state === 'idle') scheduleVariant();
+    if (controller?.state === 'idle') scheduleSleep();
   }, m.cryDurationMs);
 });
 
 spriteEl.addEventListener('mouseenter', () => {
   if (!activeTheme || Date.now() < cryUntilMs) return;
+  wakeUp();
   hovering = true;
-  cancelVariant();
   applyCurrentPose();
 });
 spriteEl.addEventListener('mouseleave', () => {
@@ -211,10 +184,9 @@ spriteEl.addEventListener('mouseleave', () => {
   hovering = false;
   if (Date.now() < cryUntilMs) return;
   applyCurrentPose();
-  if (controller?.state === 'idle') scheduleVariant();
+  if (controller?.state === 'idle') scheduleSleep();
 });
 
-// Drag.
 const DRAG_THRESHOLD_PX = 3;
 
 interface DragState {
@@ -248,6 +220,7 @@ window.addEventListener('mousemove', (e) => {
     if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
     drag.active = true;
     spriteEl.classList.add('dragging');
+    wakeUp();
   }
   window.petAPI.setPosition(drag.startWx + dx, drag.startWy + dy);
 });
@@ -257,10 +230,3 @@ window.addEventListener('mouseup', () => {
   spriteEl.classList.remove('dragging');
   drag = null;
 });
-
-setInterval(() => {
-  if (!controller || controller.state !== 'idle') return;
-  if (Date.now() < cryUntilMs || Date.now() < variantUntilMs) return;
-  if (hovering) return;
-  applyCurrentPose();
-}, 60_000);
