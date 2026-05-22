@@ -18,12 +18,6 @@ let cryUntilMs = 0;
 let variantUntilMs = 0;
 let hovering = false;
 
-// Walk left/right flip — every WALK_FLIP_INTERVAL_MS the sprite mirrors
-// horizontally so the character looks like it's wandering both directions.
-const WALK_FLIP_INTERVAL_MS = 4_000;
-let walkFlipped = false;
-let walkFlipTimer: ReturnType<typeof setInterval> | null = null;
-
 // Idle-time variants: every 8–18 seconds an "unused" row plays for ~2.5s.
 const VARIANT_MIN_WAIT_MS = 8_000;
 const VARIANT_MAX_WAIT_MS = 18_000;
@@ -69,23 +63,6 @@ function applyCurrentPose() {
   const target = computeTarget();
   if (!target) return;
   sprite.setRow(target);
-}
-
-function startWalkFlipTimer() {
-  if (walkFlipTimer) clearInterval(walkFlipTimer);
-  walkFlipped = false;
-  spriteEl.style.transform = 'scaleX(1)';
-  walkFlipTimer = setInterval(() => {
-    walkFlipped = !walkFlipped;
-    spriteEl.style.transform = walkFlipped ? 'scaleX(-1)' : 'scaleX(1)';
-  }, WALK_FLIP_INTERVAL_MS);
-}
-
-function stopWalkFlipTimer() {
-  if (walkFlipTimer) clearInterval(walkFlipTimer);
-  walkFlipTimer = null;
-  walkFlipped = false;
-  spriteEl.style.transform = 'scaleX(1)';
 }
 
 function cancelVariant() {
@@ -137,7 +114,6 @@ async function applyTheme(theme: ThemeAssets | null) {
     controller = null;
   }
   cancelVariant();
-  stopWalkFlipTimer();
   activeTheme = theme;
   cryUntilMs = 0;
   hovering = false;
@@ -164,7 +140,6 @@ async function applyTheme(theme: ThemeAssets | null) {
   spriteEl.style.width = `${visibleW}px`;
   spriteEl.style.height = `${visibleH}px`;
   spriteEl.style.backgroundSize = `${m.columns * cellW}px ${m.rows * cellH}px`;
-  spriteEl.style.transform = 'scaleX(1)';
 
   await window.petAPI.setSize(visibleW, visibleH);
   if (gen !== applyGen) return;
@@ -181,9 +156,7 @@ async function applyTheme(theme: ThemeAssets | null) {
   controller.onStateChange((s) => {
     if (s === 'walk') {
       cancelVariant();
-      startWalkFlipTimer();
     } else {
-      stopWalkFlipTimer();
       scheduleVariant();
     }
     applyCurrentPose();

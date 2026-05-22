@@ -20,9 +20,6 @@ html, body {
   background: transparent;
   background-repeat: no-repeat;
   image-rendering: pixelated;
-  transform-origin: center center;
-  /* Smooth left/right flip during walking. */
-  transition: transform 320ms ease-in-out;
   /* Dragging is handled in JS via mousedown + setPosition IPC instead of
      -webkit-app-region so contextmenu/dblclick events still reach the
      renderer. */
