@@ -182,7 +182,7 @@ window.petAPI.onKeyTyped(() => {
 
 spriteEl.addEventListener('contextmenu', (e) => {
   e.preventDefault();
-  window.petAPI.openSettings();
+  window.petAPI.showContextMenu();
 });
 
 spriteEl.addEventListener('dblclick', (e) => {

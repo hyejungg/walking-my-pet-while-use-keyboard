@@ -10,7 +10,8 @@ export const IPC = {
   PET_POSITION_RESET: 'pet:position-reset',
   PET_GET_BOUNDS: 'pet:get-bounds',
   PET_SET_POSITION: 'pet:set-position',
-  OPEN_SETTINGS: 'pet:open-settings'
+  OPEN_SETTINGS: 'pet:open-settings',
+  PET_CONTEXT_MENU: 'pet:context-menu'
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

@@ -13,6 +13,7 @@ const SETTINGS_GET = 'pet:settings-get';
 const THEME_GET_ACTIVE = 'pet:theme-get-active';
 const THEME_SET_ACTIVE = 'pet:theme-set-active';
 const OPEN_SETTINGS = 'pet:open-settings';
+const PET_CONTEXT_MENU = 'pet:context-menu';
 
 const api = {
   onKeyTyped(handler: () => void): () => void {
@@ -45,6 +46,9 @@ const api = {
   },
   openSettings(): Promise<void> {
     return ipcRenderer.invoke(OPEN_SETTINGS);
+  },
+  showContextMenu(): Promise<void> {
+    return ipcRenderer.invoke(PET_CONTEXT_MENU);
   }
 };
 

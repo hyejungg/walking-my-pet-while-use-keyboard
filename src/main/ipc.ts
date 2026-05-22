@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, screen } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { IPC } from '@shared/ipc-channels';
@@ -26,6 +26,17 @@ export function registerPetWindowIpc(
   if (openSettings) {
     ipcMain.handle(IPC.OPEN_SETTINGS, () => openSettings());
   }
+
+  ipcMain.handle(IPC.PET_CONTEXT_MENU, () => {
+    const win = getPetWindow();
+    if (!win || win.isDestroyed()) return;
+    const menu = Menu.buildFromTemplate([
+      { label: '설정 열기', click: () => openSettings?.() },
+      { type: 'separator' },
+      { label: '종료', click: () => app.quit() }
+    ]);
+    menu.popup({ window: win });
+  });
 
   ipcMain.handle(IPC.PET_MOVE_BY, (_e, payload: { dx: number }) => {
     const win = getPetWindow();
