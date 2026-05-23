@@ -40,11 +40,8 @@ jobs:
 
       - name: Build installer (${{ matrix.name }})
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Skip electron-builder's auto-publish; the release step below
-          # uploads artifacts explicitly on tag pushes only.
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npm run ${{ matrix.build_script }}
+        run: npm run ${{ matrix.build_script }} -- --publish never
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
