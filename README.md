@@ -57,6 +57,21 @@ npm run dev
 
 macOS first-run: grant the app **Accessibility** permission (System Settings → Privacy & Security → Accessibility) so global key events can be observed.
 
+## Installing a downloaded build
+
+### macOS
+
+The macOS `.dmg` is **not code-signed or notarized**, so when you open it on a Mac other than the one that built it, macOS may say the app is *"damaged and can't be opened"* or *"can't be opened because Apple cannot check it for malicious software"*. The app is fine — this is Gatekeeper blocking the unsigned bundle. Use either workaround:
+
+1. **Right-click to open** — drag the app to `/Applications`, then right-click (or Control-click) it → **Open** → **Open** in the dialog. If macOS still refuses, use option 2.
+2. **Remove the quarantine flag** — run this once in Terminal after copying the app to `/Applications`:
+
+   ```bash
+   xattr -dr com.apple.quarantine "/Applications/Walking Pet.app"
+   ```
+
+On first run, grant **Accessibility** permission (System Settings → Privacy & Security → Accessibility) so global key events can be observed.
+
 ## Build
 
 - macOS: `npm run dist:mac`

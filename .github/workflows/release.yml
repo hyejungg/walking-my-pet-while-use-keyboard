@@ -43,12 +43,23 @@ jobs:
             name: windows
             build_script: dist:win
             artifact_glob: dist/*.exe
+            release_note: ""
           - os: macos-latest
             name: macos
             build_script: dist:mac
             artifact_glob: |
               dist/*.dmg
               dist/*.zip
+            release_note: |
+
+              ---
+              ### macOS install note
+
+              The `.dmg` is **not code-signed or notarized**, so macOS may say the app is *"damaged"* or *"can't be opened because Apple cannot check it"*. The app is fine — this is Gatekeeper blocking the unsigned bundle. After copying **Walking Pet.app** to `/Applications`, either right-click it → **Open** → **Open**, or run once in Terminal:
+
+              ```bash
+              xattr -dr com.apple.quarantine "/Applications/Walking Pet.app"
+              ```
 
     runs-on: ${{ matrix.os }}
 
@@ -75,5 +86,7 @@ jobs:
         with:
           tag_name: v${{ needs.release.outputs.new_version }}
           files: ${{ matrix.artifact_glob }}
+          append_body: ${{ matrix.release_note != '' }}
+          body: ${{ matrix.release_note }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
